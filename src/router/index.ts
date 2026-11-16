@@ -38,6 +38,16 @@ const router = createRouter({
           component: () => import('@/pages/Auth/Login.vue')
         }
       ]
+    },
+    {
+      path: '/business',
+      component: () => import('@/layouts/AdminLayout.vue'),
+      children: [
+        {
+          path: '/register',
+          component: () => import('@/pages/Business/Register.vue')
+        }
+      ]
     }
   ],
 })

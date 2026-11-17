@@ -11,6 +11,7 @@ import HomeLayout from '@/layouts/HomeLayout.vue'
 import Home from '@/pages/Home/Home.vue'
 import Services from '@/pages/Home/Services.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -41,14 +42,22 @@ const router = createRouter({
     },
     {
       path: '/business',
-      component: () => import('@/layouts/AdminLayout.vue'),
+      component: AdminLayout,
       children: [
         {
-          path: '/register',
+          path: '/:pathMatch(.*)*',
+          component: Index
+        },
+        {
+          path: 'list',
+          component: () => import('@/pages/Business/List.vue')
+        },
+        {
+          path: 'profile',
           component: () => import('@/pages/Business/Register.vue')
         }
       ]
-    }
+    },
   ],
 })
 

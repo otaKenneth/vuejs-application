@@ -2,14 +2,20 @@
 import { useRouter } from 'vue-router'
 import axiosInstance from '@/api/axios';
 import GoogleSignInButton from '@/components/GoogleSignInButton.vue'
+import { useAppStore } from '@/stores/app'
 
 const router = useRouter()
+const appStore = useAppStore()
 
 async function onGoogleCredential(credential) {
   try {
     const { data } = await axiosInstance.post('/auth/google', { credential })
+    const respData = data.data
     // store data.token the same way your existing login does
-    router.push(data.needs_business_registration ? '/business/register' : '/dashboard')
+    localStorage.setItem('token', respData.token)
+    appStore.setToken(respData.token)
+    appStore.setUser(respData.user)
+    router.push(respData.needs_business_registration == null ? '/business/profile' : '/dashboard')
   } catch (e) {
     // show an error message
   }

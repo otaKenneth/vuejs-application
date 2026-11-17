@@ -22,4 +22,53 @@ const app = createApp(App)
 
 registerPlugins(app)
 
+import router from '@/router';
+import { useAppStore } from '@/stores/app'
+import { refresh } from '@/api/auth'
+
+const userStore = useAppStore()
+
+
+let sessionPromise: Promise<void> | null = null;
+
+async function loadSession(token: string | null): Promise<void> {
+  if (userStore.token === token) {
+    return;
+  }
+
+  if (!sessionPromise) {
+    sessionPromise = refresh(token)
+      .then((response: any) => {
+        const { token, user } = response.data
+
+        userStore.setToken(token);
+        userStore.setUser(user);
+      })
+      .finally(() => {
+        sessionPromise = null;
+      });
+  }
+
+  await sessionPromise;
+}
+
+router.beforeEach(async (to, from, next) => {
+  const token = localStorage.getItem('token')
+
+  if (!token && to.path !== '/login') {
+    return { path: '/login', query: { to: to.fullPath } }
+  } else {
+
+    try {
+      await loadSession(token)
+    } catch (error) {
+      console.error('Unable to restore user session:', error)
+      localStorage.removeItem('user')
+      return { path: '/', query: { to: to.fullPath } }
+    }
+    
+    next()
+  }
+})
+
 app.mount('#app')

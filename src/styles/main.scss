@@ -3,3 +3,60 @@
     font-family: var(--font-mono);
   }
 }
+
+:root {
+  --amo-primary: #082B5C;
+  --amo-secondary: #078DE0;
+  --amo-accent: #FF9800;
+
+  --amo-background: #F4F7FB;
+  --amo-surface: #FFFFFF;
+
+  --amo-text-primary: #172B4D;
+  --amo-text-secondary: #64748B;
+
+  --amo-border: #E2E8F0;
+
+  --amo-radius: 12px;
+}
+
+html,
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+.v-application {
+  background: rgb(var(--v-theme-background));
+  color: rgb(var(--v-theme-on-background));
+}
+
+.v-card {
+  border: 1px solid var(--amo-border);
+}
+
+.v-btn {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.v-table {
+  border-radius: var(--amo-radius);
+}
+
+.v-field {
+  border-radius: 8px;
+}
+
+.amo-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--amo-primary),
+    var(--amo-secondary)
+  );
+  color: white;
+}
+
+.amo-accent-text {
+  color: var(--amo-accent);
+}

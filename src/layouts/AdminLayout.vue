@@ -6,8 +6,9 @@
       </v-list-item-title>
     </v-list-item>
     <v-divider></v-divider>
-    <v-list-item class="my-5">
+    <v-list-item class="my-0">
       <v-select :items="appStore.user?.businesses" label="Business"
+        style="padding: 2px;"
         density="compact"
         variant="solo"
         elevated
@@ -17,7 +18,7 @@
         v-model="appStore.business"
       ></v-select>
     </v-list-item>
-    <v-divider class="my-5"></v-divider>
+    <v-divider class="mb-5"></v-divider>
     <v-list-item to="/business/dashboard">Dashboard</v-list-item>
     <v-list-item to="/business/list">Business</v-list-item>
     <v-list-item to="/business/employees">Employees</v-list-item>

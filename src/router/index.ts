@@ -43,6 +43,7 @@ const router = createRouter({
     {
       path: '/business',
       component: AdminLayout,
+      meta: { requiresAuth: true },
       children: [
         {
           path: '/:pathMatch(.*)*',

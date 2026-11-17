@@ -60,7 +60,7 @@ onMounted(() => {
 
 function handleSubmit() {
   // Handle form submission logic here
-  storeBusinessProfile(token.value, form).then(response => {
+  storeBusinessProfile(appStore.token, form).then(response => {
     const { success } = response
     if (success) {
       router.push('/business/list')

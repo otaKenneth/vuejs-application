@@ -52,22 +52,37 @@ async function loadSession(token: string | null): Promise<void> {
   await sessionPromise;
 }
 
-router.beforeEach(async (to, from, next) => {
+
+router.beforeEach(async (to) => {
+  // Public routes don't require authentication.
+  if (!to.meta.requiresAuth) {
+    return true
+  }
+
   const token = localStorage.getItem('token')
 
-  if (!token && to.path !== '/login') {
-    return { path: '/login', query: { to: to.fullPath } }
-  } else {
-
-    try {
-      await loadSession(token)
-    } catch (error) {
-      console.error('Unable to restore user session:', error)
-      localStorage.removeItem('user')
-      return { path: '/', query: { to: to.fullPath } }
+  // Protected routes require a token.
+  if (!token) {
+    return {
+      path: '/login',
+      query: { to: to.fullPath }
     }
-    
-    next()
+  }
+
+  try {
+    await loadSession(token)
+    return true
+  } catch (error) {
+    console.error('Unable to restore user session:', error)
+
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    userStore.setToken(null)
+
+    return {
+      path: '/login',
+      query: { to: to.fullPath }
+    }
   }
 })
 

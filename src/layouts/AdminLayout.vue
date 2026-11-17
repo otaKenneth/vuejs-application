@@ -1,11 +1,11 @@
 <template>
   <v-navigation-drawer>
     <v-list-item title>
-      <v-list-item-content>
-        <v-list-item-title>AMO</v-list-item-title>
-        <v-list-item-subtitle>{{ appStore.user?.email }}</v-list-item-subtitle>
-      </v-list-item-content>
+      <v-list-item-title>
+        <img src="@/assets/logo.png" alt="AMO Logo" srcset="@/assets/logo.png" />
+      </v-list-item-title>
     </v-list-item>
+    <v-divider></v-divider>
     <v-list-item class="my-5">
       <v-select :items="appStore.user?.businesses" label="Business"
         density="compact"

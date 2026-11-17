@@ -55,6 +55,10 @@ const router = createRouter({
         {
           path: 'profile',
           component: () => import('@/pages/Business/Register.vue')
+        },
+        {
+          path: 'employees',
+          component: () => import('@/pages/Employees/List.vue')
         }
       ]
     },

@@ -45,7 +45,7 @@ const importHeaders = [
   { title: 'Employee ID', key: 'employeeId' }, { title: 'Name', key: 'name' }, { title: 'Department', key: 'department' },
   { title: 'Email', key: 'email' }, { title: 'Phone', key: 'phone' }, { title: 'Actions', key: 'actions', sortable: false }
 ]
-const table = reactive({
+const table = reactive<any>({
   headers: [{ title: 'ID', value: 'id' }, { title: 'Name', value: 'first_name' }, { title: 'Email', value: 'email' }, { title: 'Phone', value: 'phone' }],
   items: [], page: 1, itemsPerPage: 10, sortBy: [], groupBy: [], search: '', itemsLength: 0
 })

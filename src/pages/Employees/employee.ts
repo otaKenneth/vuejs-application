@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord } from '@/stores/attendance'
 
-const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\s_-]+/g, '')
+const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '')
 function parseDelimited(text: string, delimiter = ','): string[][] {
   const rows: string[][] = []; 
   let row: string[] = []; 
@@ -34,9 +34,14 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
       || (cells.includes('Id') && cells.includes('Name') && cells.includes('Date')) 
   })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
-  const headers = rows[headerIndex].map(value => String(value ?? '').trim())
+  // Attendance exports commonly use a two-row header: merge the second row's
+  // On-duty / Off-duty labels into the grouped time-zone columns.
+  const headers = rows[headerIndex].map((value, index) => {
+    const subHeader = String(rows[headerIndex + 1]?.[index] ?? '').trim()
+    return subHeader || String(value ?? '').trim()
+  })
   const indexes = (names: string[]) => headers.map((h, i) => names.includes(normalize(h)) ? i : -1).filter(i => i >= 0)
-  const firstIn = indexes(['onduty'])[0], firstOut = indexes(['offduty'])[0]
+  const firstIn = indexes(['onduty'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
   const secondIn = indexes(['onduty'])[1] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
   const value = (row: unknown[], names: string[]) => { const index = headers.findIndex(h => names.includes(normalize(h))); return index < 0 ? '' : String(row[index] ?? '').trim() }
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
@@ -71,7 +76,6 @@ export async function processFile(file: File): Promise<AttendanceImport> {
     return buildImport(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][], file.name)
   }
   const text = await file.text()
-  const delimiter = text.split(/\\r?\\n/, 1)[0].includes('\\t') ? '\\t' : ','
-  console.log(text);
-  return buildImport(parseDelimited(text.replace(/^\\uFEFF/, ''), delimiter), file.name)
+  const delimiter = text.split(/\r?\n/, 1)[0].includes('\t') ? '\t' : ','
+  return buildImport(parseDelimited(text.replace(/^\uFEFF/, ''), delimiter), file.name)
 }

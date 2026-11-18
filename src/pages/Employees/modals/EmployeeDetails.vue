@@ -38,7 +38,14 @@ const attendanceHeaders = [
 ]
 watch(() => attendanceStore.selectedEmployeeId, () => {
   const current = attendanceStore.selectedEmployee
-  Object.assign(form, { first_name: current?.first_name ?? '', lastName: current?.last_name ?? '', middle_name: current?.middle_name ?? '', suffix: current?.suffix ?? '', email: current?.email ?? '', phone: current?.phone ?? '' })
+  Object.assign(form, {
+    first_name: current?.first_name ?? '',
+    last_name: current?.last_name ?? '',
+    middle_name: current?.middle_name ?? '',
+    suffix: current?.suffix ?? '',
+    email: current?.email ?? '',
+    phone: current?.phone ?? ''
+  })
 }, { immediate: true })
 async function save() {
   const result = await formRef.value?.validate()

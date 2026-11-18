@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord } from '@/stores/attendance'
 
 const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\s_-]+/g, '')
-function parseDelimited(text: string, delimiter = ','): string[][] {
+function parseDelimited(text: string, delimiter = ',', expectedColumnCount: number): string[][] {
   const rows: string[][] = []; 
   let row: string[] = []; 
   let cell = ''; 
@@ -16,17 +16,19 @@ function parseDelimited(text: string, delimiter = ','): string[][] {
       row.push(cell.trim()); 
       cell = '' 
     }
-    else if ((char === '\\n' || char === '\\r') && !quoted) {
+    else if (row.length === expectedColumnCount) {
       if (char === '\\r' && text[i + 1] === '\\n') i += 1
       row.push(cell.trim()); cell = ''
       if (row.some(value => value !== '')) rows.push(row)
       row = []
     } else cell += char
   }
-  row.push(cell.trim()); if (row.some(value => value !== '')) rows.push(row)
+  row.push(cell.trim()); 
+  if (row.some(value => value !== '')) rows.push(row)
+  
   return rows
 }
-function buildImport(rows: unknown[][], fileName: string, expectedColumnCount: number): AttendanceImport {
+function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   const headerIndex = rows.findIndex(row => { 
     const cells = row.map(normalize); 
     return (cells.includes('id') && cells.includes('name') && cells.includes('date'))
@@ -34,41 +36,43 @@ function buildImport(rows: unknown[][], fileName: string, expectedColumnCount: n
       || (cells.includes('Id') && cells.includes('Name') && cells.includes('Date')) 
   })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
-  const actualColumnCount = rows[headerIndex].length
-  if (actualColumnCount !== expectedColumnCount) {
-    throw new Error(`You entered ${expectedColumnCount} columns, but the detected header contains ${actualColumnCount}. Check the column count and try again.`)
-  }
+  
   // Attendance exports commonly use a two-row header: merge the second row's
   // On-duty / Off-duty labels into the grouped time-zone columns.
   const headers = rows[headerIndex].map((value, index) => {
-    const subHeader = String(rows[headerIndex + 1]?.[index] ?? '').trim()
-    return subHeader || String(value ?? '').trim()
+    const subHeader = String(rows[headerIndex]?.[index] ?? '').trim()
+    if (subHeader == "") {
+      return String(rows[headerIndex+1]?.[index] ?? '').trim();
+    } else {
+      return subHeader
+    }
   })
   const indexes = (names: string[]) => headers.map((h, i) => names.includes(normalize(h)) ? i : -1).filter(i => i >= 0)
-  const firstIn = indexes(['onduty'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
-  const secondIn = indexes(['onduty'])[1] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
+  const firstIn = indexes(['onduty', 'firsttimezone'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
+  const secondIn = indexes(['onduty', 'secondtimezone'])[1] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
   const value = (row: unknown[], names: string[]) => { const index = headers.findIndex(h => names.includes(normalize(h))); return index < 0 ? '' : String(row[index] ?? '').trim() }
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
   const employees = new Map<string, ImportedEmployee>(), attendance: AttendanceRecord[] = []
+  console.log(firstIn, firstOut, secondIn)
   for (const row of rows.slice(headerIndex + 1)) {
     const id = value(row, ['id', 'employeeid', 'ID', 'Id']), name = value(row, ['name', 'employeename', 'NAME', 'Name'])
     if (!id || !name) continue
     if (!employees.has(id.toLowerCase())) employees.set(id.toLowerCase(), {
-      employeeId: id, name, department: value(row, ['department']), email: '', phone: '',
-      firstName: '', lastName: name, middleName: '', suffix: ''
+      employeeId: id, name, department: value(row, ['department', 'Department']), email: '', phone: '',
+      first_name: '', last_name: name, middle_name: '', suffix: ''
     })
-    const date = value(row, ['date', 'workdate'])
+    const date = value(row, ['date', 'workdate', 'Date'])
     if (!date) continue
     attendance.push({
       employeeId: id, employeeName: name, date, firstOnDuty: at(row, firstIn), firstOffDuty: at(row, firstOut),
       secondOnDuty: at(row, secondIn), secondOffDuty: at(row, secondOut),
-      lateMinutes: value(row, ['latetimemin', 'lateminutes']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes']),
-      absenceMinutes: value(row, ['absencemin', 'absenceminutes']), totalMinutes: value(row, ['totalmin', 'totalminutes']),
+      lateMinutes: value(row, ['latetimemin', 'lateminutes', 'latetime(min)']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes', 'leaveearly(min)']),
+      absenceMinutes: value(row, ['absencemin', 'absenceminutes', 'absence(min)']), totalMinutes: value(row, ['totalmin', 'totalminutes', 'total(min)']),
       note: value(row, ['note'])
     })
   }
   if (!employees.size) throw new Error('No employee records were found in this file.')
-  return { fileName, columnCount: expectedColumnCount, employees: [...employees.values()], attendance, importedAt: new Date().toISOString() }
+  return { fileName, employees: [...employees.values()], attendance, importedAt: new Date().toISOString() }
 }
 export async function processFile(file: File, expectedColumnCount: number): Promise<AttendanceImport> {
   if (!Number.isInteger(expectedColumnCount) || expectedColumnCount < 1) throw new Error('Enter a valid number of columns.')
@@ -78,9 +82,9 @@ export async function processFile(file: File, expectedColumnCount: number): Prom
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     if (!sheet) throw new Error('The workbook does not contain a readable worksheet.')
-    return buildImport(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][], file.name, expectedColumnCount)
+    return buildImport(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][], file.name)
   }
   const text = await file.text()
   const delimiter = text.split(/\r?\n/, 1)[0].includes('\t') ? '\t' : ','
-  return buildImport(parseDelimited(text.replace(/^\uFEFF/, ''), delimiter), file.name, expectedColumnCount)
+  return buildImport(parseDelimited(text.replace(/^\uFEFF/, ''), delimiter, expectedColumnCount-1), file.name)
 }

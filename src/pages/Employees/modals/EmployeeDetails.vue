@@ -1,14 +1,14 @@
 <template>
-  <v-dialog :model-value="attendanceStore.isDetailsDialogOpen" max-width="900" @update:model-value="!$event && attendanceStore.closeDetailsDialog()">
+  <v-dialog :model-value="attendanceStore.isDetailsDialogOpen" max-width="900" @update:model-value="!$event && attendanceStore.closeDetailsDialog()" scrollable>
     <v-card v-if="employee">
       <v-card-title>Employee details</v-card-title>
       <v-card-subtitle>Complete the profile for {{ employee.name }} (ID: {{ employee.employeeId }})</v-card-subtitle>
       <v-card-text>
         <v-form ref="formRef" @submit.prevent="save">
           <v-row>
-            <v-col cols="12" sm="6"><v-text-field v-model="form.firstName" label="First name" /></v-col>
-            <v-col cols="12" sm="6"><v-text-field v-model="form.lastName" label="Last name" /></v-col>
-            <v-col cols="12" sm="6"><v-text-field v-model="form.middleName" label="Middle name" /></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.first_name" label="First name" /></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.last_name" label="Last name" /></v-col>
+            <v-col cols="12" sm="6"><v-text-field v-model="form.middle_name" label="Middle name" /></v-col>
             <v-col cols="12" sm="6"><v-text-field v-model="form.suffix" label="Suffix" /></v-col>
             <v-col cols="12" sm="6"><v-text-field v-model="form.email" label="Email" type="email" :rules="[value => !value || /.+@.+\\..+/.test(value) || 'Enter a valid email']" /></v-col>
             <v-col cols="12" sm="6"><v-text-field v-model="form.phone" label="Phone number" /></v-col>
@@ -30,7 +30,7 @@ import { useAttendanceStore } from '@/stores/attendance'
 const attendanceStore = useAttendanceStore()
 const formRef = ref()
 const employee = computed(() => attendanceStore.selectedEmployee)
-const form = reactive({ firstName: '', lastName: '', middleName: '', suffix: '', email: '', phone: '' })
+const form = reactive({ first_name: '', last_name: '', middle_name: '', suffix: '', email: '', phone: '' })
 const attendanceHeaders = [
   { title: 'Date', key: 'date' }, { title: '1st IN', key: 'firstOnDuty' }, { title: '1st OUT', key: 'firstOffDuty' },
   { title: '2nd IN', key: 'secondOnDuty' }, { title: '2nd OUT', key: 'secondOffDuty' },
@@ -38,7 +38,7 @@ const attendanceHeaders = [
 ]
 watch(() => attendanceStore.selectedEmployeeId, () => {
   const current = attendanceStore.selectedEmployee
-  Object.assign(form, { firstName: current?.firstName ?? '', lastName: current?.lastName ?? '', middleName: current?.middleName ?? '', suffix: current?.suffix ?? '', email: current?.email ?? '', phone: current?.phone ?? '' })
+  Object.assign(form, { first_name: current?.first_name ?? '', lastName: current?.last_name ?? '', middle_name: current?.middle_name ?? '', suffix: current?.suffix ?? '', email: current?.email ?? '', phone: current?.phone ?? '' })
 }, { immediate: true })
 async function save() {
   const result = await formRef.value?.validate()

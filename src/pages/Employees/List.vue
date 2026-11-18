@@ -46,9 +46,9 @@
           :items="attendanceStore.currentImport.employees"
           item-value="employeeId"
         >
-          <template #item.name="{ item }"
-            ><strong>{{ item.name }}</strong></template
-          >
+          <template #item.name="{ item }">
+            <strong>{{ item.name }}</strong>
+          </template>
           <template #item.email="{ item }">{{
             item.email || "Not provided"
           }}</template>

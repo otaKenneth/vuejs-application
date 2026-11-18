@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export interface ImportedEmployee {
   employeeId: string; name: string; department: string; email: string; phone: string
-  firstName: string; lastName: string; middleName: string; suffix: string
+  first_name: string; last_name: string; middle_name: string; suffix: string
 }
 export interface AttendanceRecord {
   employeeId: string; employeeName: string; date: string
@@ -10,7 +10,7 @@ export interface AttendanceRecord {
   lateMinutes: string; leaveEarlyMinutes: string; absenceMinutes: string; totalMinutes: string; note: string
 }
 export interface AttendanceImport {
-  fileName: string; columnCount: number; employees: ImportedEmployee[]; attendance: AttendanceRecord[]; importedAt: string
+  fileName: string; employees: ImportedEmployee[]; attendance: AttendanceRecord[]; importedAt: string
 }
 export const useAttendanceStore = defineStore('attendance', {
   state: () => ({
@@ -27,6 +27,7 @@ export const useAttendanceStore = defineStore('attendance', {
     selectEmployee(employeeId: string) { this.selectedEmployeeId = employeeId; this.isDetailsDialogOpen = true },
     updateEmployee(employeeId: string, details: Partial<ImportedEmployee>) {
       const employee = this.currentImport?.employees.find(item => item.employeeId === employeeId)
+      details.name = `${details.last_name}, ${details?.first_name} ${details?.middle_name} ${details.suffix}`
       if (employee) Object.assign(employee, details)
     },
     closeDetailsDialog() { this.isDetailsDialogOpen = false },

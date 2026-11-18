@@ -62,12 +62,6 @@
           >
         </v-data-table>
         <EmployeeDetails />
-        <AttendanceImportConfig
-          v-model="importConfigOpen"
-          :file-name="pendingFile ? pendingFile.name : 'Uploaded file'"
-          @confirm="processPendingFile"
-          @cancel="cancelPendingFile"
-        />
       </v-card-text>
       <v-data-table-server
         v-else
@@ -83,6 +77,12 @@
         >
       </v-data-table-server>
     </v-card>
+    <AttendanceImportConfig
+      v-model="importConfigOpen"
+      :file-name="pendingFile ? pendingFile.name : 'Uploaded file'"
+      @confirm="processPendingFile"
+      @cancel="cancelPendingFile"
+    />
     <v-snackbar v-model="errorSnackbar" color="error" timeout="6000">{{
       importError
     }}</v-snackbar>

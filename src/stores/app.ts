@@ -22,6 +22,10 @@ export const useAppStore = defineStore('app', {
     setToken(token: string | null) {
       this.token = token
     },
+    setBusinesses(businesses: []) {
+      this.user.businesses = businesses
+      this.business = businesses?.[0]?.id
+    },
     setBusiness(business: number | null) {
       this.business = business
     },

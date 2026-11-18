@@ -48,16 +48,6 @@ const rules = {
   }
 }
 
-onMounted(() => {
-  const data = getBusinessProfile(appStore.token)
-  if (data) {
-    form.name = data.name
-    form.email = data.email
-    form.phone = data.phone
-    form.address = data.address
-  }
-})
-
 function handleSubmit() {
   // Handle form submission logic here
   storeBusinessProfile(appStore.token, form).then(response => {

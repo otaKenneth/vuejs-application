@@ -1,6 +1,16 @@
 <template>
   <v-container>
-    <h1>Employees</h1>
+    <v-card>
+      <v-card-title class="flex">
+        <div class="text-h1">Employees</div>
+        <v-spacer></v-spacer>
+        <v-btn-group>
+          <v-btn color="secondary">Create</v-btn>
+          <input type="file" name="import" id="import" accept=".xlsx, .csv, .dat, .mhrimport" class="hidden" @change="handleInputChanged">
+          <v-btn @click="handleFileUpload" color="primary">Import</v-btn>
+        </v-btn-group>
+      </v-card-title>
+    </v-card>
 
     <v-data-table-server v-bind="table" @update:options="fetchEmployees">
       <template #item.first_name="{ item }">
@@ -14,6 +24,7 @@
 import { ref, reactive, watch } from 'vue';
 import { useAppStore } from '@/stores/app';
 import { getEmployeeListByBusiness } from '@/api/employees';
+import * as employeeService from './employee'
 
 const userStore = useAppStore();
 const $this = reactive({
@@ -49,6 +60,14 @@ const fetchEmployees = async ({page, itemsPerPage, sortBy, groupBy, search}) => 
     $this.tableLoading = false
   }
 };
+
+function handleFileUpload () {
+  document.getElementById('import').click()
+}
+
+function handleInputChanged (event) {
+  employeeService.processFile(event.target.value);
+}
 
 watch(
   () => userStore.business,

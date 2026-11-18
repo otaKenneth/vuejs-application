@@ -19,14 +19,16 @@
       ></v-select>
     </v-list-item>
     <v-divider class="mb-5"></v-divider>
-    <v-list-item to="/business/dashboard">Dashboard</v-list-item>
-    <v-list-item to="/business/list">Business</v-list-item>
-    <v-list-item to="/business/employees">Employees</v-list-item>
-    <v-list-item to="/business/shifts">Shifts</v-list-item>
-    <v-list-item to="/business/dtr">DTR</v-list-item>
-    <v-list-item to="/business/payroll">Payroll</v-list-item>
-    <v-list-item to="/business/transactions">Transactions</v-list-item>
-    <v-list-item>Logout</v-list-item>
+    <v-list class="pa-3" nav dense>
+      <v-list-item to="/business/dashboard" rounded="lg" color="primary">Dashboard</v-list-item>
+      <v-list-item to="/business/list" rounded="lg" color="primary">Business</v-list-item>
+      <v-list-item to="/business/employees" rounded="lg" color="primary">Employees</v-list-item>
+      <v-list-item to="/business/shifts" rounded="lg" color="primary">Shifts</v-list-item>
+      <v-list-item to="/business/dtr" rounded="lg" color="primary">DTR</v-list-item>
+      <v-list-item to="/business/payroll" rounded="lg" color="primary">Payroll</v-list-item>
+      <v-list-item to="/business/transactions" rounded="lg" color="primary">Transactions</v-list-item>
+    </v-list>
+    <v-list-item rounded="lg" color="primary">Logout</v-list-item>
   </v-navigation-drawer>
   <v-container>
     <router-view />

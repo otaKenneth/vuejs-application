@@ -6,44 +6,44 @@ import 'vuetify/styles'
 const amoLight = {
   dark: false,
   colors: {
-    primary: '#082B5C',
-    secondary: '#078DE0',
-    accent: '#FF9800',
+    primary: '#493078',
+    secondary: '#8064C8',
+    accent: '#D6B878',
 
-    background: '#F4F7FB',
+    background: '#F8F6FC',
     surface: '#FFFFFF',
 
-    success: '#16865B',
-    info: '#0284C7',
-    warning: '#F59E0B',
-    error: '#DC2626',
+    success: '#258568',
+    info: '#647FC5',
+    warning: '#D6A044',
+    error: '#C65B68',
 
     'on-primary': '#FFFFFF',
     'on-secondary': '#FFFFFF',
-    'on-background': '#172B4D',
-    'on-surface': '#172B4D',
+    'on-background': '#29213B',
+    'on-surface': '#29213B',
   },
 }
 
 const amoDark = {
   dark: true,
   colors: {
-    primary: '#4DA3FF',
-    secondary: '#38BDF8',
-    accent: '#FFB547',
+    primary: '#B69AEF',
+    secondary: '#A991E8',
+    accent: '#D6B878',
 
-    background: '#101827',
-    surface: '#192538',
+    background: '#171321',
+    surface: '#211B30',
 
-    success: '#34D399',
-    info: '#38BDF8',
-    warning: '#FBBF24',
-    error: '#F87171',
+    success: '#55C9A0',
+    info: '#8BA7ED',
+    warning: '#E8BB68',
+    error: '#ED8290',
 
-    'on-primary': '#082B5C',
-    'on-secondary': '#082B5C',
-    'on-background': '#E5EDF8',
-    'on-surface': '#E5EDF8',
+    'on-primary': '#25163F',
+    'on-secondary': '#25163F',
+    'on-background': '#F1ECF8',
+    'on-surface': '#F1ECF8',
   },
 }
 

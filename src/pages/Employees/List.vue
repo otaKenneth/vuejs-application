@@ -23,6 +23,7 @@
           <div>
             <strong>{{ attendanceStore.currentImport.fileName }}</strong>
             <div class="text-caption">
+              {{ attendanceStore.currentImport.columnCount }} columns ·
               {{ attendanceStore.currentImport.employees.length }} employees ·
               {{ attendanceStore.currentImport.attendance.length }} attendance
               rows
@@ -61,6 +62,12 @@
           >
         </v-data-table>
         <EmployeeDetails />
+        <AttendanceImportConfig
+          v-model="importConfigOpen"
+          :file-name="pendingFile ? pendingFile.name : 'Uploaded file'"
+          @confirm="processPendingFile"
+          @cancel="cancelPendingFile"
+        />
       </v-card-text>
       <v-data-table-server
         v-else
@@ -89,11 +96,14 @@ import { useAttendanceStore } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
 import * as employeeService from "./employee";
 import EmployeeDetails from "./modals/EmployeeDetails.vue";
+import AttendanceImportConfig from "./modals/AttendanceImportConfig.vue";
 const userStore = useAppStore();
 const attendanceStore = useAttendanceStore();
 const importing = ref(false),
   errorSnackbar = ref(false),
   importError = ref("");
+const importConfigOpen = ref(false);
+const pendingFile = ref<File | null>(null);
 const $this = reactive({ tableLoading: false });
 const importHeaders = [
   { title: "Employee ID", key: "employeeId" },
@@ -147,22 +157,37 @@ function handleFileUpload() {
   (document.getElementById("import") as HTMLInputElement)?.click();
 }
 
-async function handleInputChanged(event: Event) {
-  const input = event.target as HTMLInputElement,
-    file = input.files?.[0];
+function handleInputChanged(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
   if (!file) return;
+  pendingFile.value = file;
+  importConfigOpen.value = true;
+  input.value = "";
+}
+
+async function processPendingFile(columnCount: number) {
+  if (!pendingFile.value) return;
   importing.value = true;
+  importConfigOpen.value = false;
   try {
-    attendanceStore.setImport(await employeeService.processFile(file));
+    const result = await employeeService.processFile(pendingFile.value, columnCount);
+    attendanceStore.setImport(result);
+    pendingFile.value = null;
   } catch (error) {
     importError.value =
       error instanceof Error ? error.message : "Unable to process this file.";
     errorSnackbar.value = true;
   } finally {
     importing.value = false;
-    input.value = "";
   }
 }
+
+function cancelPendingFile() {
+  pendingFile.value = null;
+  importConfigOpen.value = false;
+}
+
 watch(
   () => userStore.business,
   (newBusinessId) => {

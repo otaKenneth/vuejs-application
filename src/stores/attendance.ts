@@ -27,8 +27,15 @@ export const useAttendanceStore = defineStore('attendance', {
     selectEmployee(employeeId: string) { this.selectedEmployeeId = employeeId; this.isDetailsDialogOpen = true },
     updateEmployee(employeeId: string, details: Partial<ImportedEmployee>) {
       const employee = this.currentImport?.employees.find(item => item.employeeId === employeeId)
-      details.name = `${details.last_name}, ${details?.first_name} ${details?.middle_name} ${details.suffix}`
-      if (employee) Object.assign(employee, details)
+      if (!employee) return
+
+      const updated = { ...employee, ...details }
+      const nameParts = [updated.first_name, updated.middle_name, updated.suffix].map(value => value?.trim()).filter(Boolean)
+      updated.name = updated.last_name?.trim()
+        ? `${updated.last_name.trim()}, ${nameParts.join(' ')}`.replace(/, $/, '')
+        : nameParts.join(' ')
+
+      Object.assign(employee, updated)
     },
     closeDetailsDialog() { this.isDetailsDialogOpen = false },
     clearImport() { this.currentImport = null; this.selectedEmployeeId = null; this.isDetailsDialogOpen = false }

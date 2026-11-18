@@ -10,7 +10,7 @@ export interface AttendanceRecord {
   lateMinutes: string; leaveEarlyMinutes: string; absenceMinutes: string; totalMinutes: string; note: string
 }
 export interface AttendanceImport {
-  fileName: string; employees: ImportedEmployee[]; attendance: AttendanceRecord[]; importedAt: string
+  fileName: string; columnCount: number; employees: ImportedEmployee[]; attendance: AttendanceRecord[]; importedAt: string
 }
 export const useAttendanceStore = defineStore('attendance', {
   state: () => ({

@@ -26,7 +26,7 @@ function parseDelimited(text: string, delimiter = ','): string[][] {
   row.push(cell.trim()); if (row.some(value => value !== '')) rows.push(row)
   return rows
 }
-function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
+function buildImport(rows: unknown[][], fileName: string, expectedColumnCount: number): AttendanceImport {
   const headerIndex = rows.findIndex(row => { 
     const cells = row.map(normalize); 
     return (cells.includes('id') && cells.includes('name') && cells.includes('date'))
@@ -34,6 +34,10 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
       || (cells.includes('Id') && cells.includes('Name') && cells.includes('Date')) 
   })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
+  const actualColumnCount = rows[headerIndex].length
+  if (actualColumnCount !== expectedColumnCount) {
+    throw new Error(`You entered ${expectedColumnCount} columns, but the detected header contains ${actualColumnCount}. Check the column count and try again.`)
+  }
   // Attendance exports commonly use a two-row header: merge the second row's
   // On-duty / Off-duty labels into the grouped time-zone columns.
   const headers = rows[headerIndex].map((value, index) => {
@@ -64,16 +68,17 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
     })
   }
   if (!employees.size) throw new Error('No employee records were found in this file.')
-  return { fileName, employees: [...employees.values()], attendance, importedAt: new Date().toISOString() }
+  return { fileName, columnCount: expectedColumnCount, employees: [...employees.values()], attendance, importedAt: new Date().toISOString() }
 }
-export async function processFile(file: File): Promise<AttendanceImport> {
+export async function processFile(file: File, expectedColumnCount: number): Promise<AttendanceImport> {
+  if (!Number.isInteger(expectedColumnCount) || expectedColumnCount < 1) throw new Error('Enter a valid number of columns.')
   const extension = file.name.split('.').pop()?.toLowerCase()
   if (!extension || !['csv', 'xlsx', 'xls', 'dat', 'mhrimport'].includes(extension)) throw new Error('Unsupported file type. Choose XLSX, XLS, CSV, DAT, or MHRIMPORT.')
   if (extension === 'xlsx' || extension === 'xls') {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false })
     const sheet = workbook.Sheets[workbook.SheetNames[0]]
     if (!sheet) throw new Error('The workbook does not contain a readable worksheet.')
-    return buildImport(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][], file.name)
+    return buildImport(XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][], file.name, expectedColumnCount)
   }
   const text = await file.text()
   const delimiter = text.split(/\r?\n/, 1)[0].includes('\t') ? '\t' : ','

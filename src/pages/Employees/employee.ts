@@ -3,12 +3,19 @@ import type { AttendanceImport, ImportedEmployee, AttendanceRecord } from '@/sto
 
 const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\s_-]+/g, '')
 function parseDelimited(text: string, delimiter = ','): string[][] {
-  const rows: string[][] = []; let row: string[] = []; let cell = ''; let quoted = false
+  const rows: string[][] = []; 
+  let row: string[] = []; 
+  let cell = ''; 
+  let quoted = false
+  
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i]
     if (char === '"' && quoted && text[i + 1] === '"') { cell += '"'; i += 1 }
     else if (char === '"') quoted = !quoted
-    else if (char === delimiter && !quoted) { row.push(cell.trim()); cell = '' }
+    else if (char === delimiter && !quoted) { 
+      row.push(cell.trim()); 
+      cell = '' 
+    }
     else if ((char === '\\n' || char === '\\r') && !quoted) {
       if (char === '\\r' && text[i + 1] === '\\n') i += 1
       row.push(cell.trim()); cell = ''
@@ -20,7 +27,12 @@ function parseDelimited(text: string, delimiter = ','): string[][] {
   return rows
 }
 function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
-  const headerIndex = rows.findIndex(row => { const cells = row.map(normalize); return cells.includes('id') && cells.includes('name') && cells.includes('date') })
+  const headerIndex = rows.findIndex(row => { 
+    const cells = row.map(normalize); 
+    return (cells.includes('id') && cells.includes('name') && cells.includes('date'))
+      || (cells.includes('ID') && cells.includes('NAME') && cells.includes('DATE'))
+      || (cells.includes('Id') && cells.includes('Name') && cells.includes('Date')) 
+  })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
   const headers = rows[headerIndex].map(value => String(value ?? '').trim())
   const indexes = (names: string[]) => headers.map((h, i) => names.includes(normalize(h)) ? i : -1).filter(i => i >= 0)
@@ -30,7 +42,7 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
   const employees = new Map<string, ImportedEmployee>(), attendance: AttendanceRecord[] = []
   for (const row of rows.slice(headerIndex + 1)) {
-    const id = value(row, ['id', 'employeeid']), name = value(row, ['name', 'employeename'])
+    const id = value(row, ['id', 'employeeid', 'ID', 'Id']), name = value(row, ['name', 'employeename', 'NAME', 'Name'])
     if (!id || !name) continue
     if (!employees.has(id.toLowerCase())) employees.set(id.toLowerCase(), {
       employeeId: id, name, department: value(row, ['department']), email: '', phone: '',
@@ -60,5 +72,6 @@ export async function processFile(file: File): Promise<AttendanceImport> {
   }
   const text = await file.text()
   const delimiter = text.split(/\\r?\\n/, 1)[0].includes('\\t') ? '\\t' : ','
+  console.log(text);
   return buildImport(parseDelimited(text.replace(/^\\uFEFF/, ''), delimiter), file.name)
 }

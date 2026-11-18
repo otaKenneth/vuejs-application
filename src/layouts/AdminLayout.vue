@@ -15,7 +15,8 @@
         hide-details
         item-value="id"
         item-title="name"
-        v-model="appStore.business"
+        v-model="business"
+        @update:model-value="handleBusinessChanged"
       ></v-select>
     </v-list-item>
     <v-divider class="mb-5"></v-divider>
@@ -36,7 +37,15 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
+const business = ref(appStore.business)
+
+function handleBusinessChanged (value) {
+  business.value = value
+  appStore.setBusiness(value)
+  localStorage.setItem('business', value)
+}
 </script>

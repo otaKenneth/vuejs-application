@@ -23,7 +23,6 @@
           <div>
             <strong>{{ attendanceStore.currentImport.fileName }}</strong>
             <div class="text-caption">
-              {{ attendanceStore.currentImport.columnCount }} columns ·
               {{ attendanceStore.currentImport.employees.length }} employees ·
               {{ attendanceStore.currentImport.attendance.length }} attendance
               rows

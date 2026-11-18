@@ -82,5 +82,5 @@ export async function processFile(file: File, expectedColumnCount: number): Prom
   }
   const text = await file.text()
   const delimiter = text.split(/\r?\n/, 1)[0].includes('\t') ? '\t' : ','
-  return buildImport(parseDelimited(text.replace(/^\uFEFF/, ''), delimiter), file.name)
+  return buildImport(parseDelimited(text.replace(/^\uFEFF/, ''), delimiter), file.name, expectedColumnCount)
 }

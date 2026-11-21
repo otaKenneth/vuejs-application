@@ -23,8 +23,8 @@
     <v-list class="pa-3" nav dense>
       <v-list-item to="/business/dashboard" rounded="lg" color="primary">Dashboard</v-list-item>
       <v-list-item to="/business/list" rounded="lg" color="primary">Business</v-list-item>
-      <v-list-item to="/business/employees" rounded="lg" color="primary">Employees</v-list-item>
       <v-list-item to="/business/shifts" rounded="lg" color="primary">Shifts</v-list-item>
+      <v-list-item to="/business/employees" rounded="lg" color="primary">Employees</v-list-item>
       <v-list-item to="/business/dtr" rounded="lg" color="primary">DTR</v-list-item>
       <v-list-item to="/business/payroll" rounded="lg" color="primary">Payroll</v-list-item>
       <v-list-item to="/business/transactions" rounded="lg" color="primary">Transactions</v-list-item>

@@ -12,9 +12,17 @@ export interface AttendanceRecord {
 export interface AttendanceImport {
   fileName: string; employees: ImportedEmployee[]; attendance: AttendanceRecord[]; importedAt: string
 }
+export interface EmployeeDetailsImport {
+  fileName: string
+  columns: string[]
+  records: Record<string, string>[]
+  importedAt: string
+}
+
 export const useAttendanceStore = defineStore('attendance', {
   state: () => ({
     currentImport: null as AttendanceImport | null,
+    currentEmployeeImport: null as EmployeeDetailsImport | null,
     selectedEmployeeId: null as string | null,
     isDetailsDialogOpen: false
   }),
@@ -23,7 +31,17 @@ export const useAttendanceStore = defineStore('attendance', {
     attendanceForSelectedEmployee: state => state.currentImport?.attendance.filter(record => record.employeeId === state.selectedEmployeeId) ?? []
   },
   actions: {
-    setImport(payload: AttendanceImport) { this.currentImport = payload; this.selectedEmployeeId = payload.employees[0]?.employeeId ?? null },
+    setImport(payload: AttendanceImport) {
+      this.currentImport = payload
+      this.currentEmployeeImport = null
+      this.selectedEmployeeId = payload.employees[0]?.employeeId ?? null
+    },
+    setEmployeeDetailsImport(payload: EmployeeDetailsImport) {
+      this.currentEmployeeImport = payload
+      this.currentImport = null
+      this.selectedEmployeeId = null
+      this.isDetailsDialogOpen = false
+    },
     selectEmployee(employeeId: string) { this.selectedEmployeeId = employeeId; this.isDetailsDialogOpen = true },
     updateEmployee(employeeId: string, details: Partial<ImportedEmployee>) {
       const employee = this.currentImport?.employees.find(item => item.employeeId === employeeId)
@@ -38,6 +56,11 @@ export const useAttendanceStore = defineStore('attendance', {
       Object.assign(employee, updated)
     },
     closeDetailsDialog() { this.isDetailsDialogOpen = false },
-    clearImport() { this.currentImport = null; this.selectedEmployeeId = null; this.isDetailsDialogOpen = false }
+    clearImport() {
+      this.currentImport = null
+      this.currentEmployeeImport = null
+      this.selectedEmployeeId = null
+      this.isDetailsDialogOpen = false
+    }
   }
 })

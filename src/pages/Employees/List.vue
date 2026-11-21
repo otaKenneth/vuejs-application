@@ -1,30 +1,32 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="d-flex align-center flex-wrap ga-2">
+      <v-card-title class="flex items-center flex-wrap">
         <div class="text-h4">Employees</div>
         <v-spacer />
-        <v-btn color="secondary">Create</v-btn>
         <input
           id="biometrics-import"
           type="file"
           accept=".xlsx,.xls,.csv,.dat,.mhrimport"
-          class="d-none"
+          class="hidden"
           @change="handleBiometricsFileChanged"
         />
         <input
           id="employee-details-import"
           type="file"
           accept=".xlsx,.xls,.csv"
-          class="d-none"
+          class="hidden"
           @change="handleEmployeeDetailsFileChanged"
         />
-        <v-btn color="primary" :loading="importing" @click="handleFileUpload('biometrics')">
-          Import biometrics + DTR
-        </v-btn>
-        <v-btn color="secondary" variant="tonal" :loading="importing" @click="handleFileUpload('employees')">
-          Import employee details
-        </v-btn>
+        <v-btn-group class="flex gap-2">
+          <v-btn color="secondary">Create</v-btn>
+          <v-btn color="primary" :loading="importing" @click="handleFileUpload('biometrics')">
+            Import biometrics + DTR
+          </v-btn>
+          <v-btn color="secondary" variant="tonal" :loading="importing" @click="handleFileUpload('employees')">
+            Import employee details
+          </v-btn>
+        </v-btn-group>
       </v-card-title>
 
       <v-card-text v-if="attendanceStore.currentImport">

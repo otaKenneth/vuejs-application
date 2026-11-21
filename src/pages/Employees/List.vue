@@ -1,109 +1,127 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="flex align-center">
+      <v-card-title class="flex items-center flex-wrap">
         <div class="text-h4">Employees</div>
         <v-spacer />
-        <v-btn-group>
+        <input
+          id="biometrics-import"
+          type="file"
+          accept=".xlsx,.xls,.csv,.dat,.mhrimport"
+          class="hidden"
+          @change="handleBiometricsFileChanged"
+        />
+        <input
+          id="employee-details-import"
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          class="hidden"
+          @change="handleEmployeeDetailsFileChanged"
+        />
+        <v-btn-group class="flex gap-2">
           <v-btn color="secondary">Create</v-btn>
-          <input
-            id="import"
-            type="file"
-            accept=".xlsx,.xls,.csv,.dat,.mhrimport"
-            class="d-none hidden"
-            @change="handleInputChanged"
-          />
-          <v-btn color="primary" :loading="importing" @click="handleFileUpload"
-            >Import attendance</v-btn
-          >
+          <v-btn color="primary" :loading="importing" @click="handleFileUpload('biometrics')">
+            Import biometrics + DTR
+          </v-btn>
+          <v-btn color="secondary" variant="tonal" :loading="importing" @click="handleFileUpload('employees')">
+            Import employee details
+          </v-btn>
         </v-btn-group>
       </v-card-title>
+
       <v-card-text v-if="attendanceStore.currentImport">
         <div class="d-flex align-center flex-wrap ga-2 mb-3">
           <div>
             <strong>{{ attendanceStore.currentImport.fileName }}</strong>
             <div class="text-caption">
               {{ attendanceStore.currentImport.employees.length }} employees ·
-              {{ attendanceStore.currentImport.attendance.length }} attendance
-              rows
+              {{ attendanceStore.currentImport.attendance.length }} attendance rows
             </div>
           </div>
-          <v-spacer /><v-btn
-            variant="text"
-            color="error"
-            @click="attendanceStore.clearImport()"
-            >Clear import</v-btn
-          >
+          <v-spacer />
+          <v-btn variant="text" color="error" @click="attendanceStore.clearImport()">Clear import</v-btn>
         </div>
-        <v-alert type="info" variant="tonal" class="mb-3"
-          >Review the imported employee IDs and names, then open each employee
-          to complete their contact details. Attendance is staged in this
-          browser and is not yet sent to the server.</v-alert
-        >
-        <v-data-table
-          :headers="importHeaders"
-          :items="attendanceStore.currentImport.employees"
-          item-value="employeeId"
-        >
-          <template #item.name="{ item }">
-            <strong>{{ item.name }}</strong>
+        <v-alert type="info" variant="tonal" class="mb-3">
+          Biometrics import includes employee identifiers and DTR punches. Review the imported employees and attendance before proceeding.
+          This data is staged in this browser and has not yet been sent to the server.
+        </v-alert>
+        <v-data-table :headers="importHeaders" :items="attendanceStore.currentImport.employees" item-value="employeeId">
+          <template #item.name="{ item }"><strong>{{ item.name }}</strong></template>
+          <template #item.email="{ item }">{{ item.email || "Not provided" }}</template>
+          <template #item.actions="{ item }">
+            <v-btn size="small" variant="tonal" @click="attendanceStore.selectEmployee(item.employeeId)">
+              Complete details
+            </v-btn>
           </template>
-          <template #item.email="{ item }">{{
-            item.email || "Not provided"
-          }}</template>
-          <template #item.actions="{ item }"
-            ><v-btn
-              size="small"
-              variant="tonal"
-              @click="attendanceStore.selectEmployee(item.employeeId)"
-              >Complete details</v-btn
-            ></template
-          >
         </v-data-table>
         <EmployeeDetails />
       </v-card-text>
+
+      <v-card-text v-else-if="attendanceStore.currentEmployeeImport">
+        <div class="d-flex align-center flex-wrap ga-2 mb-3">
+          <div>
+            <strong>{{ attendanceStore.currentEmployeeImport.fileName }}</strong>
+            <div class="text-caption">
+              {{ attendanceStore.currentEmployeeImport.records.length }} employee records ·
+              {{ attendanceStore.currentEmployeeImport.columns.length }} columns
+            </div>
+          </div>
+          <v-spacer />
+          <v-btn variant="text" color="error" @click="attendanceStore.clearImport()">Clear import</v-btn>
+        </div>
+        <v-alert type="info" variant="tonal" class="mb-3">
+          Employee-only import detected. Column headers are kept exactly as provided and must match the backend column names
+          (for example, last_name, first_name, and middle_name). No DTR records are included.
+          The data is staged for review and has not yet been sent to the server.
+        </v-alert>
+        <v-data-table
+          :headers="employeeDetailsHeaders"
+          :items="attendanceStore.currentEmployeeImport.records"
+          :items-per-page="10"
+          density="comfortable"
+        />
+      </v-card-text>
+
       <v-data-table-server
         v-else
         v-bind="table"
         :loading="$this.tableLoading"
         @update:options="fetchEmployees"
       >
-        <template #item.first_name="{ item }"
-          ><span
-            >{{ item.last_name }}, {{ item.first_name }} {{ item?.middle_name }}
-            {{ item?.suffix }}</span
-          ></template
-        >
+        <template #item.first_name="{ item }">
+          <span>{{ item.last_name }}, {{ item.first_name }} {{ item?.middle_name }} {{ item?.suffix }}</span>
+        </template>
       </v-data-table-server>
     </v-card>
+
     <AttendanceImportConfig
       v-model="importConfigOpen"
       :file-name="pendingFile ? pendingFile.name : 'Uploaded file'"
       @confirm="processPendingFile"
       @cancel="cancelPendingFile"
     />
-    <v-snackbar v-model="errorSnackbar" color="error" timeout="6000">{{
-      importError
-    }}</v-snackbar>
+    <v-snackbar v-model="errorSnackbar" color="error" timeout="6000">{{ importError }}</v-snackbar>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { reactive, watch, ref } from "vue";
+import { computed, reactive, watch, ref } from "vue";
 import { useAppStore } from "@/stores/app";
 import { useAttendanceStore } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
 import * as employeeService from "./employee";
 import EmployeeDetails from "./modals/EmployeeDetails.vue";
 import AttendanceImportConfig from "./modals/AttendanceImportConfig.vue";
+
 const userStore = useAppStore();
 const attendanceStore = useAttendanceStore();
-const importing = ref(false),
-  errorSnackbar = ref(false),
-  importError = ref("");
+const importing = ref(false);
+const errorSnackbar = ref(false);
+const importError = ref("");
 const importConfigOpen = ref(false);
 const pendingFile = ref<File | null>(null);
 const $this = reactive({ tableLoading: false });
+
 const importHeaders = [
   { title: "Employee ID", key: "employeeId" },
   { title: "Name", key: "name" },
@@ -112,6 +130,13 @@ const importHeaders = [
   { title: "Phone", key: "phone" },
   { title: "Actions", key: "actions", sortable: false },
 ];
+const employeeDetailsHeaders = computed(() =>
+  (attendanceStore.currentEmployeeImport?.columns ?? []).map(column => ({
+    title: column,
+    key: column,
+    sortable: true,
+  }))
+);
 const table = reactive({
   headers: [
     { title: "ID", value: "id" },
@@ -128,13 +153,7 @@ const table = reactive({
   itemsLength: 0,
 });
 
-const fetchEmployees = async ({
-  page,
-  itemsPerPage,
-  sortBy,
-  groupBy,
-  search,
-}: any) => {
+const fetchEmployees = async ({ page, itemsPerPage, sortBy, groupBy, search }: any) => {
   $this.tableLoading = true;
   try {
     const token = localStorage.getItem("token");
@@ -152,17 +171,36 @@ const fetchEmployees = async ({
   }
 };
 
-function handleFileUpload() {
-  (document.getElementById("import") as HTMLInputElement)?.click();
+function handleFileUpload(type: "biometrics" | "employees") {
+  const inputId = type === "biometrics" ? "biometrics-import" : "employee-details-import";
+  (document.getElementById(inputId) as HTMLInputElement | null)?.click();
 }
 
-function handleInputChanged(event: Event) {
+function handleBiometricsFileChanged(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
   pendingFile.value = file;
   importConfigOpen.value = true;
   input.value = "";
+}
+
+async function handleEmployeeDetailsFileChanged(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+
+  importing.value = true;
+  try {
+    const result = await employeeService.processEmployeeDetailsFile(file);
+    attendanceStore.setEmployeeDetailsImport(result);
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : "Unable to process this employee file.";
+    errorSnackbar.value = true;
+  } finally {
+    importing.value = false;
+  }
 }
 
 async function processPendingFile(columnCount: number) {
@@ -174,8 +212,7 @@ async function processPendingFile(columnCount: number) {
     attendanceStore.setImport(result);
     pendingFile.value = null;
   } catch (error) {
-    importError.value =
-      error instanceof Error ? error.message : "Unable to process this file.";
+    importError.value = error instanceof Error ? error.message : "Unable to process this file.";
     errorSnackbar.value = true;
   } finally {
     importing.value = false;

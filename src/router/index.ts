@@ -60,6 +60,10 @@ const router = createRouter({
         {
           path: 'employees',
           component: () => import('@/pages/Employees/List.vue')
+        },
+        {
+          path: 'shifts',
+          component: () => import('@/pages/Shifts/List.vue')
         }
       ]
     },

@@ -101,12 +101,10 @@ export async function processEmployeeDetailsFile(file: File): Promise<EmployeeDe
   } else {
     const text = await file.text()
     const delimiter = text.split(/\\r?\\n/, 1)[0].includes('\\t') ? '\\t' : ','
-    rows = XLSX.utils.sheet_to_json(
-      XLSX.read(text.replace(/^\\uFEFF/, ''), { type: 'string', FS: delimiter }).Sheets[
-        XLSX.read(text.replace(/^\\uFEFF/, ''), { type: 'string', FS: delimiter }).SheetNames[0]
-      ],
-      { header: 1, defval: '' }
-    ) as unknown[][]
+    const workbook = XLSX.read(text.replace(/^\\uFEFF/, ''), { type: 'string', FS: delimiter })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    if (!sheet) throw new Error('The CSV file does not contain readable data.')
+    rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as unknown[][]
   }
 
   const headerIndex = rows.findIndex(row => row.some(value => String(value ?? '').trim() !== ''))

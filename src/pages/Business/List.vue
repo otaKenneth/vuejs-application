@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-card>
-      <v-card-title class="flex">
+      <v-card-title class="flex items-center">
         <div>Business List</div>
         <v-spacer></v-spacer>
         <v-btn variant="elevated" color="primary" nav to="/business/profile">Create</v-btn>

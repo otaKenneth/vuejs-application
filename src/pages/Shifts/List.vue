@@ -1,6 +1,6 @@
 <template>
   <v-card>
-    <v-card-title class="d-flex align-center">
+    <v-card-title class="flex items-center">
       Shifts
       <v-spacer />
       <v-btn color="primary" @click="createDialogOpen = true">Create</v-btn>

@@ -26,7 +26,6 @@
               item-title="code"
               item-value="code"
               :model-value="employee.shiftCode ?? null"
-              clearable
               @update:model-value="changeShift"
             />
           </v-col>

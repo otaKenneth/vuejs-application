@@ -129,7 +129,22 @@ export const useAttendanceStore = defineStore('attendance', {
   }),
   getters: {
     selectedEmployee: state => state.currentImport?.employees.find(employee => employee.employeeId === state.selectedEmployeeId) ?? null,
-    attendanceForSelectedEmployee: state => state.currentImport?.attendance.filter(record => record.employeeId === state.selectedEmployeeId) ?? []
+    attendanceForSelectedEmployee: state => {
+      const employee = state.currentImport?.employees.find(item => item.employeeId === state.selectedEmployeeId)
+      return state.currentImport?.attendance
+        .filter(record => record.employeeId === state.selectedEmployeeId)
+        .map(record => {
+          const shift = employee?.shiftDetails?.length
+            ? shiftForAttendanceDate(employee.shiftDetails, record.date)
+            : null
+
+          return {
+            ...record,
+            scheduledClockIn: shift?.clock_in ?? record.scheduledClockIn ?? '',
+            scheduledClockOut: shift?.clock_out ?? record.scheduledClockOut ?? ''
+          }
+        }) ?? []
+    }
   },
   actions: {
     setImport(payload: AttendanceImport) {

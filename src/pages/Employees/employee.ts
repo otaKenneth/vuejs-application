@@ -61,7 +61,7 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
     attendance.push({
       employeeId: id, employeeName: name, date, firstOnDuty: at(row, firstIn), firstOffDuty: at(row, firstOut),
       secondOnDuty: at(row, secondIn), secondOffDuty: at(row, secondOut),
-      lateMinutes: value(row, ['latetimemin', 'lateminutes', 'latetime(min)']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes', 'leaveearly(min)']),
+      lateMinutes: value(row, ['latetimemin', 'lateminutes', 'latetime(min)']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes', 'leaveearly(min)']), overtimeMinutes: '',
       absenceMinutes: value(row, ['absencemin', 'absenceminutes', 'absence(min)']), totalMinutes: value(row, ['totalmin', 'totalminutes', 'total(min)']),
       note: value(row, ['note'])
     })

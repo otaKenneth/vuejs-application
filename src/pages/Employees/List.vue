@@ -142,6 +142,7 @@ const $this = reactive({
   tableLoading: false,
   shifts: [],
   selectedShiftCode: '',
+  selectedShiftDetail: {},
   shiftHasChangedLoading: false,
 });
 
@@ -195,15 +196,18 @@ const fetchEmployees = async ({ page, itemsPerPage, sortBy, groupBy, search }: a
   }
 };
 
-function fetchShifts()
-{
-  getShiftsForSelection(userStore.token, userStore.business).then((resp:any) => {
-    const { data } = resp
-    $this.shifts = data
-    if (! $this.selectedShiftCode && data.length > 0) $this.selectedShiftCode = data[0].code;
-  }).catch((err:any) => {
-    console.log(err)
-  })
+function fetchShifts() {
+  getShiftsForSelection(userStore.token, userStore.business)
+    .then((resp:any) => {
+      const { array, select } = resp.data
+      $this.shifts = array
+      if (array.length > 0) {
+        $this.selectedShiftCode = array[0].code;
+        $this.selectedShiftDetail = select
+      }
+    }).catch((err:any) => {
+      console.log(err)
+    })
 }
 
 function handleFileUpload(type: "biometrics" | "employees") {
@@ -246,7 +250,9 @@ async function processPendingFile(columnCount: number) {
     const result = await employeeService.processFile(pendingFile.value, columnCount);
     attendanceStore.setImport(result);
     pendingFile.value = null;
-    if ($this.selectedShiftCode) await handleDefaultShiftChange($this.selectedShiftCode);
+    if ($this.selectedShiftCode) {
+      attendanceStore.applyShiftToAll($this.selectedShiftCode, $this.selectedShiftDetail)
+    }
   } catch (error) {
     importError.value = error instanceof Error ? error.message : "Unable to process this file.";
     errorSnackbar.value = true;
@@ -267,6 +273,7 @@ async function handleDefaultShiftChange(value: string) {
   try {
     const response: any = await getShiftDetail(userStore.token, value)
     if (!response?.data) throw new Error('The selected shift details could not be loaded.')
+    $this.selectedShiftDetail = response.data
     attendanceStore.applyShiftToAll(value, response.data)
   } catch (error) {
     importError.value = error instanceof Error ? error.message : 'Unable to load the selected shift.'

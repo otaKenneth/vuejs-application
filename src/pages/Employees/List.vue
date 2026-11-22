@@ -52,6 +52,7 @@
               :items="$this.shifts"
               item-title="code"
               hide-details
+              @update:model-value="handleDefaultShiftChange"
             ></v-select>
           </v-col>
           <v-col cols="6" class="flex justify-end">
@@ -122,7 +123,7 @@ import { computed, reactive, watch, ref } from "vue";
 import { useAppStore } from "@/stores/app";
 import { useAttendanceStore } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
-import { getShiftsForSelection } from '@/api/shifts'
+import { getShiftsForSelection, getShiftDetail } from '@/api/shifts'
 import * as employeeService from "./employee";
 import EmployeeDetails from "./modals/EmployeeDetails.vue";
 import AttendanceImportConfig from "./modals/AttendanceImportConfig.vue";
@@ -137,7 +138,9 @@ const pendingFile = ref<File | null>(null);
 const $this = reactive({ 
   tableLoading: false,
   shifts: [],
-  seleceted_shift: 1,
+  seleceted_shift: 'Regular',
+  seleceted_shift_details: null,
+  shiftHasChangedLoading: false,
 });
 
 const importHeaders = [
@@ -195,6 +198,7 @@ function fetchShifts()
   getShiftsForSelection(userStore.token, userStore.business).then((resp:any) => {
     const { data } = resp
     $this.shifts = data
+    if (data.length > 0) $this.seleceted_shift = data[0];
   }).catch((err:any) => {
     console.log(err)
   })
@@ -251,6 +255,16 @@ async function processPendingFile(columnCount: number) {
 function cancelPendingFile() {
   pendingFile.value = null;
   importConfigOpen.value = false;
+}
+
+async function handleDefaultShiftChange(value:string) {
+  $this.shiftHasChangedLoading = true;
+  getShiftDetail(userStore.token, value)
+    .then((resp:any) => {
+      $this.seleceted_shift_details = resp.data
+    }).finally(() => {
+      $this.shiftHasChangedLoading = false;
+    })
 }
 
 watch(

@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord, EmployeeDetailsImport } from '@/stores/attendance'
 
-const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\_-]+/g, '')
+const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\s\\_-]+/g, '')
 function parseDelimited(text: string, delimiter = ',', expectedColumnCount: number): string[][] {
   const rows: string[][] = []
   let row: string[] = []

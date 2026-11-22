@@ -51,6 +51,9 @@
               label="Select default Shift for Employees"
               :items="$this.shifts"
               item-title="code"
+              item-value="code"
+              :model-value="$this.selectedShiftCode"
+              :loading="$this.shiftHasChangedLoading"
               hide-details
               @update:model-value="handleDefaultShiftChange"
             ></v-select>
@@ -68,7 +71,7 @@
             </v-btn>
           </template>
         </v-data-table>
-        <EmployeeDetails />
+        <EmployeeDetails :shifts="$this.shifts" @shift-change="handleEmployeeShiftChange" />
       </v-card-text>
 
       <v-card-text v-else-if="attendanceStore.currentEmployeeImport">
@@ -138,8 +141,7 @@ const pendingFile = ref<File | null>(null);
 const $this = reactive({ 
   tableLoading: false,
   shifts: [],
-  seleceted_shift: 'Regular',
-  seleceted_shift_details: null,
+  selectedShiftCode: '',
   shiftHasChangedLoading: false,
 });
 
@@ -198,7 +200,7 @@ function fetchShifts()
   getShiftsForSelection(userStore.token, userStore.business).then((resp:any) => {
     const { data } = resp
     $this.shifts = data
-    if (data.length > 0) $this.seleceted_shift = data[0];
+    if (data.length > 0) $this.selectedShiftCode = data[0].code;
   }).catch((err:any) => {
     console.log(err)
   })
@@ -257,14 +259,31 @@ function cancelPendingFile() {
   importConfigOpen.value = false;
 }
 
-async function handleDefaultShiftChange(value:string) {
-  $this.shiftHasChangedLoading = true;
-  getShiftDetail(userStore.token, value)
-    .then((resp:any) => {
-      $this.seleceted_shift_details = resp.data
-    }).finally(() => {
-      $this.shiftHasChangedLoading = false;
-    })
+async function handleDefaultShiftChange(value: string) {
+  if (!value || !attendanceStore.currentImport) return
+  $this.shiftHasChangedLoading = true
+  try {
+    const response: any = await getShiftDetail(userStore.token, value)
+    if (!response?.data) throw new Error('The selected shift details could not be loaded.')
+    attendanceStore.applyShiftToAll(value, response.data)
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : 'Unable to load the selected shift.'
+    errorSnackbar.value = true
+  } finally {
+    $this.shiftHasChangedLoading = false
+  }
+}
+
+async function handleEmployeeShiftChange(employeeId: string, value: string) {
+  if (!value) return
+  try {
+    const response: any = await getShiftDetail(userStore.token, value)
+    if (!response?.data) throw new Error('The selected shift details could not be loaded.')
+    attendanceStore.updateEmployeeShift(employeeId, value, response.data)
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : 'Unable to update this employee shift.'
+    errorSnackbar.value = true
+  }
 }
 
 watch(

@@ -116,7 +116,7 @@ const emit = defineEmits<{
 }>()
 
 const formRef = ref()
-const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const requiredRule = (value: unknown) => !!String(value ?? '').trim() || 'This field is required.'
 const defaultForm = () => ({
   code: '',

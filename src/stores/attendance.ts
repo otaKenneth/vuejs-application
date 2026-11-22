@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export interface ShiftDetails {
   code: string
-  day_of_week: string
+  day_of_week: number,
   clock_in: string
   clock_out: string
   [key: string]: unknown
@@ -23,7 +23,7 @@ function timeToMinutes(value: string): number | null {
   return hours * 60 + minutes
 }
 
-function weekdayFromAttendanceDate(value: string): string | null {
+function weekdayFromAttendanceDate(value: string): number | null {
   const dateValue = String(value ?? '').trim()
   if (!dateValue) return null
 
@@ -60,13 +60,13 @@ function weekdayFromAttendanceDate(value: string): string | null {
   const date = new Date(year, month - 1, day)
   if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
 
-  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()]
+  return date.getDay()
 }
 
 function shiftForAttendanceDate(shifts: ShiftDetails[], attendanceDate: string): ShiftDetails | null {
   const weekday = weekdayFromAttendanceDate(attendanceDate)
   if (!weekday) return null
-  return shifts.find(shift => String(shift.day_of_week ?? '').trim().toLowerCase() === weekday.toLowerCase()) ?? null
+  return shifts.find(shift => shift.day_of_week === weekday) ?? null
 }
 
 function calculateAttendance(record: AttendanceRecord, shift: ShiftDetails) {

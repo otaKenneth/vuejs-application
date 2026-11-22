@@ -246,6 +246,7 @@ async function processPendingFile(columnCount: number) {
     const result = await employeeService.processFile(pendingFile.value, columnCount);
     attendanceStore.setImport(result);
     pendingFile.value = null;
+    if ($this.selectedShiftCode) await handleDefaultShiftChange($this.selectedShiftCode);
   } catch (error) {
     importError.value = error instanceof Error ? error.message : "Unable to process this file.";
     errorSnackbar.value = true;

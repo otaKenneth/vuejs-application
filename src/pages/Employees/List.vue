@@ -262,6 +262,7 @@ function cancelPendingFile() {
 
 async function handleDefaultShiftChange(value: string) {
   if (!value || !attendanceStore.currentImport) return
+  $this.selectedShiftCode = value
   $this.shiftHasChangedLoading = true
   try {
     const response: any = await getShiftDetail(userStore.token, value)

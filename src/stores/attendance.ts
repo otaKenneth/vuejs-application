@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 
 export interface ShiftDetails {
   code: string
+  day_of_week: string
   clock_in: string
   clock_out: string
   [key: string]: unknown
@@ -20,6 +21,34 @@ function timeToMinutes(value: string): number | null {
     hours = hours % 12 + (meridiem === 'PM' ? 12 : 0)
   }
   return hours * 60 + minutes
+}
+
+function weekdayFromAttendanceDate(value: string): string | null {
+  const dateValue = String(value ?? '').trim()
+  if (!dateValue) return null
+
+  let date: Date
+  const isoMatch = dateValue.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/)
+  if (isoMatch) {
+    date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]))
+  } else {
+    const dayFirstMatch = dateValue.match(/^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/)
+    if (dayFirstMatch && Number(dayFirstMatch[1]) > 12) {
+      date = new Date(Number(dayFirstMatch[3]), Number(dayFirstMatch[2]) - 1, Number(dayFirstMatch[1]))
+    } else {
+      date = new Date(dateValue)
+    }
+  }
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()]
+}
+
+function shiftForAttendanceDate(shifts: ShiftDetails[], attendanceDate: string): ShiftDetails | null {
+  const weekday = weekdayFromAttendanceDate(attendanceDate)
+  if (!weekday) return null
+  return shifts.find(shift => String(shift.day_of_week ?? '').trim().toLowerCase() === weekday.toLowerCase()) ?? null
 }
 
 function calculateAttendance(record: AttendanceRecord, shift: ShiftDetails) {
@@ -52,7 +81,7 @@ function calculateAttendance(record: AttendanceRecord, shift: ShiftDetails) {
 export interface ImportedEmployee {
   employeeId: string; name: string; department: string; email: string; phone: string
   first_name: string; last_name: string; middle_name: string; suffix: string
-  shiftCode?: string; shiftDetails?: ShiftDetails | null
+  shiftCode?: string; shiftDetails?: ShiftDetails[] | null
 }
 export interface AttendanceRecord {
   employeeId: string; employeeName: string; date: string
@@ -105,25 +134,37 @@ export const useAttendanceStore = defineStore('attendance', {
 
       Object.assign(employee, updated)
     },
-    applyShiftToAll(code: string, shift: ShiftDetails) {
+    applyShiftToAll(code: string, shifts: ShiftDetails[]) {
       if (!this.currentImport) return
       this.currentImport.employees.forEach(employee => {
         employee.shiftCode = code
-        employee.shiftDetails = shift
+        employee.shiftDetails = shifts
       })
       this.currentImport.attendance.forEach(record => {
         const employee = this.currentImport?.employees.find(item => item.employeeId === record.employeeId)
-        if (employee?.shiftDetails) calculateAttendance(record, employee.shiftDetails)
+        const shift = employee?.shiftDetails
+          ? shiftForAttendanceDate(employee.shiftDetails, record.date)
+          : null
+        record.lateMinutes = ''
+        record.leaveEarlyMinutes = ''
+        record.overtimeMinutes = ''
+        if (shift) calculateAttendance(record, shift)
       })
     },
-    updateEmployeeShift(employeeId: string, code: string, shift: ShiftDetails) {
+    updateEmployeeShift(employeeId: string, code: string, shifts: ShiftDetails[]) {
       const employee = this.currentImport?.employees.find(item => item.employeeId === employeeId)
       if (!employee || !this.currentImport) return
       employee.shiftCode = code
-      employee.shiftDetails = shift
+      employee.shiftDetails = shifts
       this.currentImport.attendance
         .filter(record => record.employeeId === employeeId)
-        .forEach(record => calculateAttendance(record, shift))
+        .forEach(record => {
+          const shift = shiftForAttendanceDate(shifts, record.date)
+          record.lateMinutes = ''
+          record.leaveEarlyMinutes = ''
+          record.overtimeMinutes = ''
+          if (shift) calculateAttendance(record, shift)
+        })
     },
     closeDetailsDialog() { this.isDetailsDialogOpen = false },
     clearImport() {

@@ -9,7 +9,7 @@ export interface ShiftDetails {
 
 
 function timeToMinutes(value: string): number | null {
-  const match = String(value ?? '').trim().match(/^(\\d{1,2}):(\\d{2})(?::\\d{2})?\\s*(AM|PM)?$/i)
+  const match = String(value ?? '').trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i)
   if (!match) return null
   let hours = Number(match[1])
   const minutes = Number(match[2])

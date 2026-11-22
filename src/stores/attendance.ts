@@ -27,22 +27,40 @@ function weekdayFromAttendanceDate(value: string): string | null {
   const dateValue = String(value ?? '').trim()
   if (!dateValue) return null
 
-  let date: Date
-  const isoMatch = dateValue.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})/)
+  let year: number
+  let month: number
+  let day: number
+  const isoMatch = dateValue.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
+  const dayFirstMatch = dateValue.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/)
+
   if (isoMatch) {
-    date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]))
-  } else {
-    const dayFirstMatch = dateValue.match(/^(\\d{1,2})[/.\\-](\\d{1,2})[/.\\-](\\d{4})$/)
-    if (dayFirstMatch && Number(dayFirstMatch[1]) > 12) {
-      date = new Date(Number(dayFirstMatch[3]), Number(dayFirstMatch[2]) - 1, Number(dayFirstMatch[1]))
+    year = Number(isoMatch[1])
+    month = Number(isoMatch[2])
+    day = Number(isoMatch[3])
+  } else if (dayFirstMatch) {
+    const first = Number(dayFirstMatch[1])
+    const second = Number(dayFirstMatch[2])
+    year = Number(dayFirstMatch[3])
+    // Treat unambiguous DD/MM/YYYY as day-first; otherwise retain the common MM/DD/YYYY convention.
+    if (first > 12) {
+      day = first
+      month = second
     } else {
-      date = new Date(dateValue)
+      month = first
+      day = second
     }
+  } else {
+    const parsed = new Date(dateValue)
+    if (Number.isNaN(parsed.getTime())) return null
+    year = parsed.getFullYear()
+    month = parsed.getMonth() + 1
+    day = parsed.getDate()
   }
 
-  return Number.isNaN(date.getTime())
-    ? null
-    : ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()]
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null
+
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()]
 }
 
 function shiftForAttendanceDate(shifts: ShiftDetails[], attendanceDate: string): ShiftDetails | null {

@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord, EmployeeDetailsImport } from '@/stores/attendance'
 
-const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\s_-]+/g, '')
+const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\_-]+/g, '')
 function parseDelimited(text: string, delimiter = ',', expectedColumnCount: number): string[][] {
   const rows: string[][] = []
   let row: string[] = []
@@ -41,9 +41,11 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
     if (subHeader == '') return String(rows[headerIndex + 1]?.[index] ?? '').trim()
     return subHeader
   })
-  const indexes = (names: string[]) => headers.map((h, i) => names.includes(normalize(h)) ? i : -1).filter(i => i >= 0)
-  const firstIn = indexes(['onduty', 'firsttimezone'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
-  const secondIn = indexes(['onduty', 'secondtimezone'])[1] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
+  const indexes = (names: string[]) => headers.map((h, i) => {
+    return names.includes(normalize(h)) ? i : -1
+  }).filter(i => i >= 0)
+  const firstIn = indexes(['onduty', 'first time zone'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
+  const secondIn = indexes(['onduty', 'second time zone'])[0] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
   const value = (row: unknown[], names: string[]) => { const index = headers.findIndex(h => names.includes(normalize(h))); return index < 0 ? '' : String(row[index] ?? '').trim() }
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
   const employees = new Map<string, ImportedEmployee>(), attendance: AttendanceRecord[] = []

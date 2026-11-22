@@ -9,3 +9,11 @@ export const getShifts = async (token, business_id, data) => {
     })
     return response.data
 }
+
+export const storeShift = async (token, business_id, data) => {
+    const response = await axiosInstance.post(`/shifts/${business_id}`, data, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+}

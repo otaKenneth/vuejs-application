@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { getShifts } from '@/api/shifts'
+import { getShifts, storeShift } from '@/api/shifts'
 import { useAppStore } from '@/stores/app'
 import CreateShiftModal from './modals/CreateShiftModal.vue'
 
@@ -105,6 +105,20 @@ async function createShift(payload: ShiftPayload) {
   creating.value = true
   try {
     console.info('Shift ready for API submission:', payload)
+    storeShift(useApp.token, useApp.business, payload)
+      .then((resp:any) => {
+        const { success, message } = resp
+        if (success) {
+          console.log(message)
+        }
+      }).catch((err:any) => {
+        const { response } = err
+        if (response.data) {
+          console.log(response.data)
+        } else {
+          console.error(err)
+        }
+      })
     createDialogOpen.value = false
   } finally {
     creating.value = false

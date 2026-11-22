@@ -3,6 +3,7 @@
     :model-value="modelValue"
     max-width="720"
     persistent
+    scrollable
     @update:model-value="emit('update:modelValue', $event)"
   >
     <v-card>
@@ -28,6 +29,7 @@
                 :items="daysOfWeek"
                 label="Day of week"
                 variant="outlined"
+                multiple
                 :rules="[requiredRule]"
               />
             </v-col>
@@ -58,8 +60,16 @@
               />
             </v-col>
             <v-col cols="12">
+              <v-textarea
+                v-model="form.description"
+                label="Description"
+                variant="outlined"
+              ></v-textarea>
+            </v-col>
+            <v-col cols="12">
               <v-divider class="mb-2" />
               <div class="text-subtitle-2 mb-2">Shift settings</div>
+              <div><label for="">Work Hours</label>: {{ timeDiff(form.clock_out, form.clock_in) }}</div>
               <v-switch v-model="form.allow_break" label="Allow break" color="primary" hide-details />
               <v-switch v-model="form.is_flexible" label="Flexible shift" color="primary" hide-details />
               <v-switch v-model="form.is_general_shift" label="Public / general shift" color="primary" hide-details />
@@ -83,8 +93,9 @@
 import { reactive, ref, watch } from 'vue'
 
 type ShiftPayload = {
-  code: string
-  day_of_week: string
+  code: string,
+  description: string,
+  day_of_week: string[],
   clock_in: string
   clock_out: string
   break_in: string | null
@@ -109,6 +120,7 @@ const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Sat
 const requiredRule = (value: unknown) => !!String(value ?? '').trim() || 'This field is required.'
 const defaultForm = () => ({
   code: '',
+  description: "",
   day_of_week: 'Monday',
   clock_in: '08:00',
   clock_out: '17:00',
@@ -135,6 +147,7 @@ async function submit() {
 
   emit('create', {
     code: form.code.trim(),
+    description: form.description,
     day_of_week: form.day_of_week,
     clock_in: form.clock_in,
     clock_out: form.clock_out,
@@ -144,5 +157,25 @@ async function submit() {
     is_flexible: form.is_flexible,
     is_general_shift: form.is_general_shift,
   })
+}
+
+function timeDiff (timeOut : String, timeIn: String) {
+  const [startH, startM] = timeIn.split(':').map(Number);
+  const [endH, endM] = timeOut.split(':').map(Number);
+
+  const startTotalMins = startH * 60 + startM;
+  const endTotalMins = endH * 60 + endM;
+
+  let diffMins = endTotalMins - startTotalMins;
+
+  // Handle crossing midnight (e.g., 22:00 to 15:00 = 17 hours)
+  if (diffMins < 0) {
+    diffMins += 24 * 60;
+  }
+
+  const hours = Math.floor(diffMins / 60);
+  const minutes = diffMins % 60;
+
+  return { hours, minutes };
 }
 </script>

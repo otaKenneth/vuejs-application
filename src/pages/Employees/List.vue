@@ -45,6 +45,19 @@
           Biometrics import includes employee identifiers and DTR punches. Review the imported employees and attendance before proceeding.
           This data is staged in this browser and has not yet been sent to the server.
         </v-alert>
+        <v-row class="items-center">
+          <v-col cols="6">
+            <v-select
+              label="Select default Shift for Employees"
+              :items="$this.shifts"
+              item-title="code"
+              hide-details
+            ></v-select>
+          </v-col>
+          <v-col cols="6" class="flex justify-end">
+            <v-btn color="primary">Save this Record?</v-btn>
+          </v-col>
+        </v-row>
         <v-data-table :headers="importHeaders" :items="attendanceStore.currentImport.employees" item-value="employeeId">
           <template #item.name="{ item }"><strong>{{ item.name }}</strong></template>
           <template #item.email="{ item }">{{ item.email || "Not provided" }}</template>
@@ -109,6 +122,7 @@ import { computed, reactive, watch, ref } from "vue";
 import { useAppStore } from "@/stores/app";
 import { useAttendanceStore } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
+import { getShiftsForSelection } from '@/api/shifts'
 import * as employeeService from "./employee";
 import EmployeeDetails from "./modals/EmployeeDetails.vue";
 import AttendanceImportConfig from "./modals/AttendanceImportConfig.vue";
@@ -120,7 +134,11 @@ const errorSnackbar = ref(false);
 const importError = ref("");
 const importConfigOpen = ref(false);
 const pendingFile = ref<File | null>(null);
-const $this = reactive({ tableLoading: false });
+const $this = reactive({ 
+  tableLoading: false,
+  shifts: [],
+  seleceted_shift: 1,
+});
 
 const importHeaders = [
   { title: "Employee ID", key: "employeeId" },
@@ -168,8 +186,19 @@ const fetchEmployees = async ({ page, itemsPerPage, sortBy, groupBy, search }: a
     console.error("Error fetching employees:", error);
   } finally {
     $this.tableLoading = false;
+    fetchShifts()    
   }
 };
+
+function fetchShifts()
+{
+  getShiftsForSelection(userStore.token, userStore.business).then((resp:any) => {
+    const { data } = resp
+    $this.shifts = data
+  }).catch((err:any) => {
+    console.log(err)
+  })
+}
 
 function handleFileUpload(type: "biometrics" | "employees") {
   const inputId = type === "biometrics" ? "biometrics-import" : "employee-details-import";

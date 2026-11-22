@@ -45,6 +45,23 @@
           Biometrics import includes employee identifiers and DTR punches. Review the imported employees and attendance before proceeding.
           This data is staged in this browser and has not yet been sent to the server.
         </v-alert>
+        <v-row class="items-center">
+          <v-col cols="6">
+            <v-select
+              label="Select default Shift for Employees"
+              :items="$this.shifts"
+              item-title="code"
+              item-value="code"
+              :model-value="$this.selectedShiftCode"
+              :loading="$this.shiftHasChangedLoading"
+              hide-details
+              @update:model-value="handleDefaultShiftChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="6" class="flex justify-end">
+            <v-btn color="primary">Save this Record?</v-btn>
+          </v-col>
+        </v-row>
         <v-data-table :headers="importHeaders" :items="attendanceStore.currentImport.employees" item-value="employeeId">
           <template #item.name="{ item }"><strong>{{ item.name }}</strong></template>
           <template #item.email="{ item }">{{ item.email || "Not provided" }}</template>
@@ -54,7 +71,7 @@
             </v-btn>
           </template>
         </v-data-table>
-        <EmployeeDetails />
+        <EmployeeDetails :shifts="$this.shifts" @shift-change="handleEmployeeShiftChange" />
       </v-card-text>
 
       <v-card-text v-else-if="attendanceStore.currentEmployeeImport">
@@ -107,8 +124,9 @@
 <script setup lang="ts">
 import { computed, reactive, watch, ref } from "vue";
 import { useAppStore } from "@/stores/app";
-import { useAttendanceStore } from "@/stores/attendance";
+import { useAttendanceStore, type ShiftDetails } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
+import { getShiftsForSelection, getShiftDetail } from '@/api/shifts'
 import * as employeeService from "./employee";
 import EmployeeDetails from "./modals/EmployeeDetails.vue";
 import AttendanceImportConfig from "./modals/AttendanceImportConfig.vue";
@@ -120,7 +138,13 @@ const errorSnackbar = ref(false);
 const importError = ref("");
 const importConfigOpen = ref(false);
 const pendingFile = ref<File | null>(null);
-const $this = reactive({ tableLoading: false });
+const $this = reactive({ 
+  tableLoading: false,
+  shifts: [],
+  selectedShiftCode: '',
+  selectedShiftDetail: [] as ShiftDetails[],
+  shiftHasChangedLoading: false,
+});
 
 const importHeaders = [
   { title: "Employee ID", key: "employeeId" },
@@ -168,8 +192,22 @@ const fetchEmployees = async ({ page, itemsPerPage, sortBy, groupBy, search }: a
     console.error("Error fetching employees:", error);
   } finally {
     $this.tableLoading = false;
+    fetchShifts()    
   }
 };
+
+function fetchShifts() {
+  getShiftsForSelection(userStore.token, userStore.business)
+    .then((resp:any) => {
+      const { array } = resp.data
+      $this.shifts = array
+      if (array.length > 0 && !$this.selectedShiftCode) {
+        $this.selectedShiftCode = array[0].code
+      }
+    }).catch((err:any) => {
+      console.log(err)
+    })
+}
 
 function handleFileUpload(type: "biometrics" | "employees") {
   const inputId = type === "biometrics" ? "biometrics-import" : "employee-details-import";
@@ -211,6 +249,9 @@ async function processPendingFile(columnCount: number) {
     const result = await employeeService.processFile(pendingFile.value, columnCount);
     attendanceStore.setImport(result);
     pendingFile.value = null;
+    if ($this.selectedShiftCode) {
+      await handleDefaultShiftChange($this.selectedShiftCode)
+    }
   } catch (error) {
     importError.value = error instanceof Error ? error.message : "Unable to process this file.";
     errorSnackbar.value = true;
@@ -222,6 +263,39 @@ async function processPendingFile(columnCount: number) {
 function cancelPendingFile() {
   pendingFile.value = null;
   importConfigOpen.value = false;
+}
+
+async function handleDefaultShiftChange(value: string) {
+  if (!value || !attendanceStore.currentImport) return
+  $this.selectedShiftCode = value
+  $this.shiftHasChangedLoading = true
+  try {
+    const response: any = await getShiftDetail(userStore.token, value)
+    if (!Array.isArray(response?.data)) {
+      throw new Error('The selected shift details must be returned as a list of weekday schedules.')
+    }
+    $this.selectedShiftDetail = response.data
+    attendanceStore.applyShiftToAll(value, response.data)
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : 'Unable to load the selected shift.'
+    errorSnackbar.value = true
+  } finally {
+    $this.shiftHasChangedLoading = false
+  }
+}
+
+async function handleEmployeeShiftChange(employeeId: string, value: string) {
+  if (!value) return
+  try {
+    const response: any = await getShiftDetail(userStore.token, value)
+    if (!Array.isArray(response?.data)) {
+      throw new Error('The selected shift details must be returned as a list of weekday schedules.')
+    }
+    attendanceStore.updateEmployeeShift(employeeId, value, response.data)
+  } catch (error) {
+    importError.value = error instanceof Error ? error.message : 'Unable to update this employee shift.'
+    errorSnackbar.value = true
+  }
 }
 
 watch(

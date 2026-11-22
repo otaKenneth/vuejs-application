@@ -1,8 +1,8 @@
 import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord, EmployeeDetailsImport } from '@/stores/attendance'
 
-const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\\_-]+/g, '')
-function parseDelimited(text: string, delimiter = ',', expectedColumnCount: number): string[][] {
+const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\s\\_-]+/g, '')
+function parseDelimited(text: string, delimiter = ','): string[][] {
   const rows: string[][] = []
   let row: string[] = []
   let cell = ''
@@ -10,21 +10,30 @@ function parseDelimited(text: string, delimiter = ',', expectedColumnCount: numb
 
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i]
-    if (char === '"' && quoted && text[i + 1] === '"') { cell += '"'; i += 1 }
-    else if (char === '"') quoted = !quoted
-    else if (char === delimiter && !quoted) { row.push(cell.trim()); cell = '' }
-    else if (row.length === expectedColumnCount) {
-      if (char === '\\r' && text[i + 1] === '\\n') i += 1
-      row.push(cell.trim()); cell = ''
+
+    if (char === '"' && quoted && text[i + 1] === '"') {
+      cell += '"'
+      i += 1
+    } else if (char === '"') {
+      quoted = !quoted
+    } else if (char === delimiter && !quoted) {
+      row.push(cell.trim())
+      cell = ''
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[i + 1] === '\n') i += 1
+      row.push(cell.trim())
       if (row.some(value => value !== '')) rows.push(row)
       row = []
-    } else cell += char
+      cell = ''
+    } else {
+      cell += char
+    }
   }
+
   row.push(cell.trim())
   if (row.some(value => value !== '')) rows.push(row)
   return rows
 }
-
 function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   const headerIndex = rows.findIndex(row => {
     const cells = row.map(normalize)
@@ -34,18 +43,25 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
 
-  // Attendance exports commonly use a two-row header: merge the second row's
-  // On-duty / Off-duty labels into the grouped time-zone columns.
-  const headers = rows[headerIndex].map((value, index) => {
-    const subHeader = String(rows[headerIndex]?.[index] ?? '').trim()
-    if (subHeader == '') return String(rows[headerIndex + 1]?.[index] ?? '').trim()
-    return subHeader
+  // Some biometric exports use grouped columns (First/Second Time Zone)
+  // with On Duty / Off Duty labels on the following header row.
+  const primaryHeaders = rows[headerIndex].map(value => String(value ?? '').trim())
+  const possibleSubHeaders = rows[headerIndex + 1] ?? []
+  const hasSubHeaders = possibleSubHeaders.some(value => ['onduty', 'offduty'].includes(normalize(value)))
+  const headers = primaryHeaders.map((primary, index) => {
+    const secondary = hasSubHeaders ? String(possibleSubHeaders[index] ?? '').trim() : ''
+    return [primary, secondary].filter(Boolean).join(' ').trim()
   })
-  const indexes = (names: string[]) => headers.map((h, i) => {
-    return names.includes(normalize(h)) ? i : -1
-  }).filter(i => i >= 0)
-  const firstIn = indexes(['onduty', 'first time zone'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
-  const secondIn = indexes(['onduty', 'second time zone'])[0] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
+  const isIn = (header: string) => ['onduty', 'clockin', 'timein'].some(alias => normalize(header).includes(alias))
+  const isOut = (header: string) => ['offduty', 'clockout', 'timeout'].some(alias => normalize(header).includes(alias))
+  const findZoneIndex = (zone: string, predicate: (header: string) => boolean) =>
+    headers.findIndex(header => normalize(header).includes(zone) && predicate(header))
+  const inIndexes = headers.map((header, index) => isIn(header) ? index : -1).filter(index => index >= 0)
+  const outIndexes = headers.map((header, index) => isOut(header) ? index : -1).filter(index => index >= 0)
+  const firstIn = findZoneIndex('firsttimezone', isIn) >= 0 ? findZoneIndex('firsttimezone', isIn) : (inIndexes[0] ?? -1)
+  const firstOut = findZoneIndex('firsttimezone', isOut) >= 0 ? findZoneIndex('firsttimezone', isOut) : (outIndexes[0] ?? -1)
+  const secondIn = findZoneIndex('secondtimezone', isIn) >= 0 ? findZoneIndex('secondtimezone', isIn) : (inIndexes[1] ?? -1)
+  const secondOut = findZoneIndex('secondtimezone', isOut) >= 0 ? findZoneIndex('secondtimezone', isOut) : (outIndexes[1] ?? -1)
   const value = (row: unknown[], names: string[]) => { const index = headers.findIndex(h => names.includes(normalize(h))); return index < 0 ? '' : String(row[index] ?? '').trim() }
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
   const employees = new Map<string, ImportedEmployee>(), attendance: AttendanceRecord[] = []
@@ -61,7 +77,8 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
     attendance.push({
       employeeId: id, employeeName: name, date, firstOnDuty: at(row, firstIn), firstOffDuty: at(row, firstOut),
       secondOnDuty: at(row, secondIn), secondOffDuty: at(row, secondOut),
-      lateMinutes: value(row, ['latetimemin', 'lateminutes', 'latetime(min)']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes', 'leaveearly(min)']),
+      scheduledClockIn: '', scheduledClockOut: '',
+      lateMinutes: value(row, ['latetimemin', 'lateminutes', 'latetime(min)']), leaveEarlyMinutes: value(row, ['leaveearlymin', 'leaveearlyminutes', 'leaveearly(min)']), overtimeMinutes: '',
       absenceMinutes: value(row, ['absencemin', 'absenceminutes', 'absence(min)']), totalMinutes: value(row, ['totalmin', 'totalminutes', 'total(min)']),
       note: value(row, ['note'])
     })

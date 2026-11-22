@@ -90,10 +90,7 @@ const attendanceHeaders = [
   { title: '1st IN', key: 'firstOnDuty' },
   { title: '1st OUT', key: 'firstOffDuty' },
   { title: '2nd IN', key: 'secondOnDuty' },
-  { title: '2nd OUT', key: 'secondOffDuty' },
-  { title: 'Late (min)', key: 'lateMinutes' },
-  { title: 'Early out (min)', key: 'leaveEarlyMinutes' },
-  { title: 'Overtime (min)', key: 'overtimeMinutes' },
+  { title: '2nd OUT', key: 'secondOffDuty' }
 ]
 
 watch(() => attendanceStore.selectedEmployeeId, () => {

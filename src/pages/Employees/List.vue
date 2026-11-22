@@ -124,7 +124,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch, ref } from "vue";
 import { useAppStore } from "@/stores/app";
-import { useAttendanceStore } from "@/stores/attendance";
+import { useAttendanceStore, type ShiftDetails } from "@/stores/attendance";
 import { getEmployeeListByBusiness } from "@/api/employees";
 import { getShiftsForSelection, getShiftDetail } from '@/api/shifts'
 import * as employeeService from "./employee";
@@ -142,7 +142,7 @@ const $this = reactive({
   tableLoading: false,
   shifts: [],
   selectedShiftCode: '',
-  selectedShiftDetail: {},
+  selectedShiftDetail: [] as ShiftDetails[],
   shiftHasChangedLoading: false,
 });
 
@@ -199,11 +199,10 @@ const fetchEmployees = async ({ page, itemsPerPage, sortBy, groupBy, search }: a
 function fetchShifts() {
   getShiftsForSelection(userStore.token, userStore.business)
     .then((resp:any) => {
-      const { array, select } = resp.data
+      const { array } = resp.data
       $this.shifts = array
-      if (array.length > 0) {
-        $this.selectedShiftCode = array[0].code;
-        $this.selectedShiftDetail = select
+      if (array.length > 0 && !$this.selectedShiftCode) {
+        $this.selectedShiftCode = array[0].code
       }
     }).catch((err:any) => {
       console.log(err)
@@ -251,7 +250,7 @@ async function processPendingFile(columnCount: number) {
     attendanceStore.setImport(result);
     pendingFile.value = null;
     if ($this.selectedShiftCode) {
-      attendanceStore.applyShiftToAll($this.selectedShiftCode, $this.selectedShiftDetail)
+      await handleDefaultShiftChange($this.selectedShiftCode)
     }
   } catch (error) {
     importError.value = error instanceof Error ? error.message : "Unable to process this file.";
@@ -272,7 +271,9 @@ async function handleDefaultShiftChange(value: string) {
   $this.shiftHasChangedLoading = true
   try {
     const response: any = await getShiftDetail(userStore.token, value)
-    if (!response?.data) throw new Error('The selected shift details could not be loaded.')
+    if (!Array.isArray(response?.data)) {
+      throw new Error('The selected shift details must be returned as a list of weekday schedules.')
+    }
     $this.selectedShiftDetail = response.data
     attendanceStore.applyShiftToAll(value, response.data)
   } catch (error) {
@@ -287,7 +288,9 @@ async function handleEmployeeShiftChange(employeeId: string, value: string) {
   if (!value) return
   try {
     const response: any = await getShiftDetail(userStore.token, value)
-    if (!response?.data) throw new Error('The selected shift details could not be loaded.')
+    if (!Array.isArray(response?.data)) {
+      throw new Error('The selected shift details must be returned as a list of weekday schedules.')
+    }
     attendanceStore.updateEmployeeShift(employeeId, value, response.data)
   } catch (error) {
     importError.value = error instanceof Error ? error.message : 'Unable to update this employee shift.'

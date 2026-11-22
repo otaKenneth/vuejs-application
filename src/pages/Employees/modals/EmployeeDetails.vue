@@ -87,6 +87,8 @@ const employee = computed(() => attendanceStore.selectedEmployee)
 const form = reactive({ first_name: '', last_name: '', middle_name: '', suffix: '', email: '', phone: '' })
 const attendanceHeaders = [
   { title: 'Date', key: 'date' },
+  { title: 'Schedule IN', key: 'scheduledClockIn' },
+  { title: 'Schedule OUT', key: 'scheduledClockOut' },
   { title: '1st IN', key: 'firstOnDuty' },
   { title: '1st OUT', key: 'firstOffDuty' },
   { title: '2nd IN', key: 'secondOnDuty' },

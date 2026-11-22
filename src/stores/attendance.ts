@@ -52,6 +52,9 @@ function shiftForAttendanceDate(shifts: ShiftDetails[], attendanceDate: string):
 }
 
 function calculateAttendance(record: AttendanceRecord, shift: ShiftDetails) {
+  record.scheduledClockIn = shift.clock_in
+  record.scheduledClockOut = shift.clock_out
+
   const scheduledIn = timeToMinutes(shift.clock_in)
   const scheduledOutValue = timeToMinutes(shift.clock_out)
   const actualInValue = timeToMinutes(record.firstOnDuty)
@@ -86,6 +89,7 @@ export interface ImportedEmployee {
 export interface AttendanceRecord {
   employeeId: string; employeeName: string; date: string
   firstOnDuty: string; firstOffDuty: string; secondOnDuty: string; secondOffDuty: string
+  scheduledClockIn: string; scheduledClockOut: string
   lateMinutes: string; leaveEarlyMinutes: string; overtimeMinutes: string; absenceMinutes: string; totalMinutes: string; note: string
 }
 export interface AttendanceImport {
@@ -145,6 +149,8 @@ export const useAttendanceStore = defineStore('attendance', {
         const shift = employee?.shiftDetails
           ? shiftForAttendanceDate(employee.shiftDetails, record.date)
           : null
+        record.scheduledClockIn = ''
+        record.scheduledClockOut = ''
         record.lateMinutes = ''
         record.leaveEarlyMinutes = ''
         record.overtimeMinutes = ''
@@ -160,6 +166,8 @@ export const useAttendanceStore = defineStore('attendance', {
         .filter(record => record.employeeId === employeeId)
         .forEach(record => {
           const shift = shiftForAttendanceDate(shifts, record.date)
+          record.scheduledClockIn = ''
+          record.scheduledClockOut = ''
           record.lateMinutes = ''
           record.leaveEarlyMinutes = ''
           record.overtimeMinutes = ''

@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx'
 import type { AttendanceImport, ImportedEmployee, AttendanceRecord, EmployeeDetailsImport } from '@/stores/attendance'
 
 const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase().replace(/[\s\\_-]+/g, '')
-function parseDelimited(text: string, delimiter = ',', expectedColumnCount: number): string[][] {
+function parseDelimited(text: string, delimiter = ','): string[][] {
   const rows: string[][] = []
   let row: string[] = []
   let cell = ''
@@ -10,21 +10,30 @@ function parseDelimited(text: string, delimiter = ',', expectedColumnCount: numb
 
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i]
-    if (char === '"' && quoted && text[i + 1] === '"') { cell += '"'; i += 1 }
-    else if (char === '"') quoted = !quoted
-    else if (char === delimiter && !quoted) { row.push(cell.trim()); cell = '' }
-    else if (row.length === expectedColumnCount) {
-      if (char === '\\r' && text[i + 1] === '\\n') i += 1
-      row.push(cell.trim()); cell = ''
+
+    if (char === '"' && quoted && text[i + 1] === '"') {
+      cell += '"'
+      i += 1
+    } else if (char === '"') {
+      quoted = !quoted
+    } else if (char === delimiter && !quoted) {
+      row.push(cell.trim())
+      cell = ''
+    } else if ((char === '\n' || char === '\r') && !quoted) {
+      if (char === '\r' && text[i + 1] === '\n') i += 1
+      row.push(cell.trim())
       if (row.some(value => value !== '')) rows.push(row)
       row = []
-    } else cell += char
+      cell = ''
+    } else {
+      cell += char
+    }
   }
+
   row.push(cell.trim())
   if (row.some(value => value !== '')) rows.push(row)
   return rows
 }
-
 function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   const headerIndex = rows.findIndex(row => {
     const cells = row.map(normalize)

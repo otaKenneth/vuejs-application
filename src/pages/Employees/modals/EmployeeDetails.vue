@@ -29,10 +29,17 @@
               @update:model-value="changeShift"
             />
           </v-col>
-          <v-col cols="12" sm="6" v-if="employee.shiftDetails">
-            <div class="text-body-2">
-              Schedule: <strong>{{ employee.shiftDetails.clock_in }} – {{ employee.shiftDetails.clock_out }}</strong>
-            </div>
+          <v-col cols="12" v-if="employee.shiftDetails?.length">
+            <div class="text-body-2 mb-1">Weekly schedule</div>
+            <v-chip
+              v-for="schedule in employee.shiftDetails"
+              :key="schedule.day_of_week"
+              class="mr-2 mb-2"
+              size="small"
+              variant="tonal"
+            >
+              {{ schedule.day_of_week }}: {{ schedule.clock_in }} – {{ schedule.clock_out }}
+            </v-chip>
           </v-col>
         </v-row>
 

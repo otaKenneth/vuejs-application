@@ -200,7 +200,7 @@ function fetchShifts()
   getShiftsForSelection(userStore.token, userStore.business).then((resp:any) => {
     const { data } = resp
     $this.shifts = data
-    if (data.length > 0) $this.selectedShiftCode = data[0].code;
+    if (! $this.selectedShiftCode && data.length > 0) $this.selectedShiftCode = data[0].code;
   }).catch((err:any) => {
     console.log(err)
   })

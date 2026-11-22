@@ -34,18 +34,25 @@ function buildImport(rows: unknown[][], fileName: string): AttendanceImport {
   })
   if (headerIndex < 0) throw new Error('Could not find a header row containing ID, Name, and Date.')
 
-  // Attendance exports commonly use a two-row header: merge the second row's
-  // On-duty / Off-duty labels into the grouped time-zone columns.
-  const headers = rows[headerIndex].map((value, index) => {
-    const subHeader = String(rows[headerIndex]?.[index] ?? '').trim()
-    if (subHeader == '') return String(rows[headerIndex + 1]?.[index] ?? '').trim()
-    return subHeader
+  // Some biometric exports use grouped columns (First/Second Time Zone)
+  // with On Duty / Off Duty labels on the following header row.
+  const primaryHeaders = rows[headerIndex].map(value => String(value ?? '').trim())
+  const possibleSubHeaders = rows[headerIndex + 1] ?? []
+  const hasSubHeaders = possibleSubHeaders.some(value => ['onduty', 'offduty'].includes(normalize(value)))
+  const headers = primaryHeaders.map((primary, index) => {
+    const secondary = hasSubHeaders ? String(possibleSubHeaders[index] ?? '').trim() : ''
+    return [primary, secondary].filter(Boolean).join(' ').trim()
   })
-  const indexes = (names: string[]) => headers.map((h, i) => {
-    return names.includes(normalize(h)) ? i : -1
-  }).filter(i => i >= 0)
-  const firstIn = indexes(['onduty', 'first time zone'])[0] ?? -1, firstOut = indexes(['offduty'])[0] ?? -1
-  const secondIn = indexes(['onduty', 'second time zone'])[0] ?? -1, secondOut = indexes(['offduty'])[1] ?? -1
+  const isIn = (header: string) => ['onduty', 'clockin', 'timein'].some(alias => normalize(header).includes(alias))
+  const isOut = (header: string) => ['offduty', 'clockout', 'timeout'].some(alias => normalize(header).includes(alias))
+  const findZoneIndex = (zone: string, predicate: (header: string) => boolean) =>
+    headers.findIndex(header => normalize(header).includes(zone) && predicate(header))
+  const inIndexes = headers.map((header, index) => isIn(header) ? index : -1).filter(index => index >= 0)
+  const outIndexes = headers.map((header, index) => isOut(header) ? index : -1).filter(index => index >= 0)
+  const firstIn = findZoneIndex('firsttimezone', isIn) >= 0 ? findZoneIndex('firsttimezone', isIn) : (inIndexes[0] ?? -1)
+  const firstOut = findZoneIndex('firsttimezone', isOut) >= 0 ? findZoneIndex('firsttimezone', isOut) : (outIndexes[0] ?? -1)
+  const secondIn = findZoneIndex('secondtimezone', isIn) >= 0 ? findZoneIndex('secondtimezone', isIn) : (inIndexes[1] ?? -1)
+  const secondOut = findZoneIndex('secondtimezone', isOut) >= 0 ? findZoneIndex('secondtimezone', isOut) : (outIndexes[1] ?? -1)
   const value = (row: unknown[], names: string[]) => { const index = headers.findIndex(h => names.includes(normalize(h))); return index < 0 ? '' : String(row[index] ?? '').trim() }
   const at = (row: unknown[], index: number) => index < 0 ? '' : String(row[index] ?? '').trim()
   const employees = new Map<string, ImportedEmployee>(), attendance: AttendanceRecord[] = []
